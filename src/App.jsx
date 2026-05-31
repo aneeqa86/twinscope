@@ -6,21 +6,24 @@ import HomePage from '@/pages/HomePage'
 import AboutPage from '@/pages/AboutPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 
-export default function App() {
+const App = () => {
   return (
     <ThemeProvider>
       <AuthProvider>
         <Routes>
-          {/* All routes inside MainLayout share the Navbar + Footer */}
+          {/* HomePage is full screen — no Navbar/Footer wrapper */}
+          <Route path="/" element={<HomePage />} />
+
+          {/* Other pages keep the layout */}
           <Route element={<MainLayout />}>
-            <Route path="/" element={<HomePage />} />
             <Route path="/about" element={<AboutPage />} />
           </Route>
 
-          {/* Catch-all 404 */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </AuthProvider>
     </ThemeProvider>
   )
 }
+
+export default App
