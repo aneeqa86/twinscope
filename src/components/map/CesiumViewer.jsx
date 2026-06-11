@@ -1,5 +1,5 @@
 import * as Cesium from 'cesium'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
 import {
   Viewer,
   Cesium3DTileset,
@@ -17,6 +17,7 @@ import {
   SunLight,
   EllipsoidGeodesic,
   PolylineCollection,
+  PolygonHierarchy,
 } from 'cesium'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 
@@ -52,7 +53,27 @@ const applyDefaultStyle = (tileset) => {
   tileset.style = undefined
 }
 
-const CesiumViewer = ({
+const computePolygonAreaKm2 = (cartesians) => {
+  const cartographics = cartesians.map((c) => Cartographic.fromCartesian(c))
+  let area = 0
+  const n = cartographics.length
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n
+    const xi = CesiumMath.toDegrees(cartographics[i].longitude)
+    const yi = CesiumMath.toDegrees(cartographics[i].latitude)
+    const xj = CesiumMath.toDegrees(cartographics[j].longitude)
+    const yj = CesiumMath.toDegrees(cartographics[j].latitude)
+    area += xi * yj
+    area -= xj * yi
+  }
+  const areaDeg2 = Math.abs(area) / 2
+  const areaKm2 = areaDeg2 * 111.32 * 111.32
+  return areaKm2
+}
+
+const lerp = (a, b, t) => a + (b - a) * t
+
+const CesiumViewer = forwardRef(({
   onCameraMove,
   onBuildingClick,
   onLoad,
@@ -62,20 +83,47 @@ const CesiumViewer = ({
   sunHour,
   measureMode,
   onMeasureResult,
-}) => {
-  const containerRef = useRef(null)
-  const viewerRef = useRef(null)
-  const tilesetRef = useRef(null)
-  const mountedRef = useRef(true)
-  const measurePointsRef = useRef([])
-  const measureHandlerRef = useRef(null)
-  const polylineCollectionRef = useRef(null)
+  viewshedMode,
+  onViewshedResult,
+}, ref) => {
+  const containerRef           = useRef(null)
+  const viewerRef              = useRef(null)
+  const tilesetRef             = useRef(null)
+  const mountedRef             = useRef(true)
+  const measurePointsRef       = useRef([])
+  const measureHandlerRef      = useRef(null)
+  const polylineCollectionRef  = useRef(null)
+  const areaPrimitiveRef       = useRef(null)
+  const viewshedHandlerRef     = useRef(null)
+  const viewshedPrimitivesRef  = useRef([])
+  const viewshedMarkersRef     = useRef([])
+  const viewshedPointsRef      = useRef([])
+
+  useImperativeHandle(ref, () => ({
+    zoomIn: () => {
+      if (viewerRef.current)
+        viewerRef.current.camera.zoomIn(viewerRef.current.camera.positionCartographic.height * 0.3)
+    },
+    zoomOut: () => {
+      if (viewerRef.current)
+        viewerRef.current.camera.zoomOut(viewerRef.current.camera.positionCartographic.height * 0.3)
+    },
+    clearViewshed: () => {
+      const viewer = viewerRef.current
+      if (!viewer) return
+      viewshedPrimitivesRef.current.forEach(p => viewer.scene.primitives.remove(p))
+      viewshedPrimitivesRef.current = []
+      viewshedMarkersRef.current.forEach(e => viewer.entities.remove(e))
+      viewshedMarkersRef.current = []
+      viewshedPointsRef.current = []
+    },
+  }))
 
   // Fly to city
   useEffect(() => {
     if (!flyTo || !viewerRef.current) return
     viewerRef.current.camera.flyTo({
-      destination: Cartesian3.fromDegrees(flyTo.lat, flyTo.lng, flyTo.alt),
+      destination: Cartesian3.fromDegrees(flyTo.lng, flyTo.lat, flyTo.alt),
       orientation: {
         heading: CesiumMath.toRadians(0),
         pitch: CesiumMath.toRadians(-40),
@@ -105,13 +153,10 @@ const CesiumViewer = ({
     viewer.scene.light = new SunLight()
   }, [sunHour])
 
-  // Disable shadows when sun mode off
   useEffect(() => {
     const viewer = viewerRef.current
     if (!viewer) return
-    if (sunHour === null) {
-      viewer.scene.shadows = false
-    }
+    if (sunHour === null) viewer.scene.shadows = false
   }, [sunHour])
 
   // Measurement tool
@@ -119,7 +164,6 @@ const CesiumViewer = ({
     const viewer = viewerRef.current
     if (!viewer) return
 
-    // Clean up previous
     if (measureHandlerRef.current) {
       measureHandlerRef.current.destroy()
       measureHandlerRef.current = null
@@ -127,6 +171,10 @@ const CesiumViewer = ({
     if (polylineCollectionRef.current) {
       viewer.scene.primitives.remove(polylineCollectionRef.current)
       polylineCollectionRef.current = null
+    }
+    if (areaPrimitiveRef.current) {
+      viewer.entities.remove(areaPrimitiveRef.current)
+      areaPrimitiveRef.current = null
     }
     measurePointsRef.current = []
 
@@ -139,35 +187,244 @@ const CesiumViewer = ({
     const handler = new ScreenSpaceEventHandler(viewer.scene.canvas)
     measureHandlerRef.current = handler
 
-    handler.setInputAction((click) => {
-      const cartesian = viewer.scene.pickPosition(click.position)
-      if (!cartesian) return
+    if (measureMode === 'distance') {
+      handler.setInputAction((click) => {
+        const cartesian = viewer.scene.pickPosition(click.position)
+        if (!cartesian) return
+        measurePointsRef.current.push(cartesian)
 
-      measurePointsRef.current.push(cartesian)
+        if (measurePointsRef.current.length === 2) {
+          const [p1, p2] = measurePointsRef.current
+          polylines.add({
+            positions: [p1, p2],
+            width: 3,
+            material: Cesium.Material.fromType('Color', { color: Color.CYAN }),
+          })
+          const c1 = Cartographic.fromCartesian(p1)
+          const c2 = Cartographic.fromCartesian(p2)
+          const geodesic = new EllipsoidGeodesic(c1, c2)
+          const metres = geodesic.surfaceDistance
+          const distanceLabel = metres < 1000
+            ? `${Math.round(metres)} m`
+            : `${(metres / 1000).toFixed(3)} km`
+          if (onMeasureResult) onMeasureResult(distanceLabel)
+          measurePointsRef.current = []
+        }
+      }, ScreenSpaceEventType.LEFT_CLICK)
+    }
 
-      if (measurePointsRef.current.length === 2) {
-        const [p1, p2] = measurePointsRef.current
+    if (measureMode === 'area') {
+      handler.setInputAction((click) => {
+        const cartesian = viewer.scene.pickPosition(click.position)
+        if (!cartesian) return
+        measurePointsRef.current.push(cartesian)
+
+        if (measurePointsRef.current.length >= 2) {
+          const pts = measurePointsRef.current
+          polylines.removeAll()
+          for (let i = 0; i < pts.length - 1; i++) {
+            polylines.add({
+              positions: [pts[i], pts[i + 1]],
+              width: 2,
+              material: Cesium.Material.fromType('Color', {
+                color: Color.fromCssColorString('#10b981'),
+              }),
+            })
+          }
+        }
+      }, ScreenSpaceEventType.LEFT_CLICK)
+
+      handler.setInputAction(() => {
+        const pts = measurePointsRef.current
+        if (pts.length < 3) return
 
         polylines.add({
-          positions: [p1, p2],
-          width: 3,
+          positions: [pts[pts.length - 1], pts[0]],
+          width: 2,
           material: Cesium.Material.fromType('Color', {
-            color: Color.CYAN,
+            color: Color.fromCssColorString('#10b981'),
           }),
         })
 
-        const c1 = Cartographic.fromCartesian(p1)
-        const c2 = Cartographic.fromCartesian(p2)
-        const geodesic = new EllipsoidGeodesic(c1, c2)
-        const distanceKm = (geodesic.surfaceDistance / 1000).toFixed(3)
+        const entity = viewer.entities.add({
+          polygon: {
+            hierarchy: new PolygonHierarchy(pts),
+            material: Color.fromCssColorString('#10b981').withAlpha(0.25),
+            outline: false,
+            perPositionHeight: false,
+          },
+        })
+        areaPrimitiveRef.current = entity
 
-        if (onMeasureResult) onMeasureResult(`${distanceKm} km`)
-
+        const areaKm2 = computePolygonAreaKm2(pts)
+        const areaM2 = areaKm2 * 1_000_000
+        const label = areaM2 < 1_000_000
+          ? `${Math.round(areaM2).toLocaleString()} m²`
+          : `${areaKm2.toFixed(4)} km²`
+        if (onMeasureResult) onMeasureResult(label)
         measurePointsRef.current = []
+      }, ScreenSpaceEventType.LEFT_DOUBLE_CLICK)
+    }
+  }, [measureMode])
+
+  // Viewshed tool
+  useEffect(() => {
+    const viewer = viewerRef.current
+    if (!viewer) return
+
+    // Cleanup previous viewshed
+    if (viewshedHandlerRef.current) {
+      viewshedHandlerRef.current.destroy()
+      viewshedHandlerRef.current = null
+    }
+    viewshedPrimitivesRef.current.forEach(p => viewer.scene.primitives.remove(p))
+    viewshedPrimitivesRef.current = []
+    viewshedMarkersRef.current.forEach(e => viewer.entities.remove(e))
+    viewshedMarkersRef.current = []
+    viewshedPointsRef.current = []
+
+    if (!viewshedMode) return
+
+    const handler = new ScreenSpaceEventHandler(viewer.scene.canvas)
+    viewshedHandlerRef.current = handler
+
+    handler.setInputAction(async (click) => {
+      const cartesian = viewer.scene.pickPosition(click.position)
+      if (!cartesian) return
+
+      viewshedPointsRef.current.push(cartesian)
+      const pts = viewshedPointsRef.current
+
+      // Add marker dot
+      const carto = Cartographic.fromCartesian(cartesian)
+      const isFirst = pts.length === 1
+      const marker = viewer.entities.add({
+        position: Cartesian3.fromDegrees(
+          CesiumMath.toDegrees(carto.longitude),
+          CesiumMath.toDegrees(carto.latitude),
+          carto.height + 2
+        ),
+        ellipse: {
+          semiMinorAxis: 8,
+          semiMajorAxis: 8,
+          material: isFirst
+            ? Color.fromCssColorString('#06b6d4').withAlpha(0.9)
+            : Color.fromCssColorString('#f59e0b').withAlpha(0.9),
+          classificationType: Cesium.ClassificationType.BOTH,
+        },
+      })
+      viewshedMarkersRef.current.push(marker)
+
+      if (pts.length < 2) return
+
+      // Two points selected — run line-of-sight analysis
+      const [p1, p2] = pts
+      const c1 = Cartographic.fromCartesian(p1)
+      const c2 = Cartographic.fromCartesian(p2)
+
+      const SAMPLES = 24
+      const sampleCartographics = []
+
+      for (let i = 0; i <= SAMPLES; i++) {
+        const t = i / SAMPLES
+        const lon = lerp(c1.longitude, c2.longitude, t)
+        const lat = lerp(c1.latitude,  c2.latitude,  t)
+        sampleCartographics.push(new Cartographic(lon, lat))
       }
+
+      // Sample scene height (terrain + buildings) at each point
+      let sampledHeights
+      try {
+        const sampled = await viewer.scene.sampleHeightMostDetailed(sampleCartographics)
+        sampledHeights = sampled.map(c => c.height ?? 0)
+      } catch {
+        // Fallback: use globe height only
+        sampledHeights = sampleCartographics.map(() => 0)
+      }
+
+      // Observer height — 1.7m above ground
+      const observerHeight = (sampledHeights[0] ?? 0) + 1.7
+      const targetHeight   = (sampledHeights[SAMPLES] ?? 0) + 1.7
+
+      // Check line of sight at each sample
+      let blocked = false
+      let blockedAt = -1
+
+      for (let i = 1; i < SAMPLES; i++) {
+        const t = i / SAMPLES
+        // Height of straight line between observer and target at this t
+        const losHeight = lerp(observerHeight, targetHeight, t)
+        const sceneHeight = sampledHeights[i] ?? 0
+        if (sceneHeight > losHeight) {
+          blocked = true
+          blockedAt = i
+          break
+        }
+      }
+
+      // Build result positions — elevate line slightly above ground
+      const buildPositions = (fromIdx, toIdx) => {
+        const result = []
+        for (let i = fromIdx; i <= toIdx; i++) {
+          const t = i / SAMPLES
+          const lon = lerp(c1.longitude, c2.longitude, t)
+          const lat = lerp(c1.latitude,  c2.latitude,  t)
+          const h = lerp(observerHeight, targetHeight, t) + 2
+          result.push(Cartesian3.fromDegrees(
+            CesiumMath.toDegrees(lon),
+            CesiumMath.toDegrees(lat),
+            h
+          ))
+        }
+        return result
+      }
+
+      const polylines = new PolylineCollection()
+
+      if (!blocked) {
+        // Full green line
+        polylines.add({
+          positions: buildPositions(0, SAMPLES),
+          width: 4,
+          material: Cesium.Material.fromType('Color', {
+            color: Color.fromCssColorString('#10b981').withAlpha(0.9),
+          }),
+        })
+      } else {
+        // Green up to block point, red from block point to end
+        if (blockedAt > 0) {
+          polylines.add({
+            positions: buildPositions(0, blockedAt),
+            width: 4,
+            material: Cesium.Material.fromType('Color', {
+              color: Color.fromCssColorString('#10b981').withAlpha(0.9),
+            }),
+          })
+        }
+        polylines.add({
+          positions: buildPositions(blockedAt, SAMPLES),
+          width: 4,
+          material: Cesium.Material.fromType('Color', {
+            color: Color.fromCssColorString('#ef4444').withAlpha(0.9),
+          }),
+        })
+      }
+
+      viewer.scene.primitives.add(polylines)
+      viewshedPrimitivesRef.current.push(polylines)
+
+      if (onViewshedResult) {
+        onViewshedResult(blocked ? 'blocked' : 'clear')
+      }
+
+      // Reset for next analysis
+      viewshedPointsRef.current = []
+      viewshedMarkersRef.current.forEach(e => viewer.entities.remove(e))
+      viewshedMarkersRef.current = []
+
     }, ScreenSpaceEventType.LEFT_CLICK)
 
-  }, [measureMode])
+  }, [viewshedMode])
 
   // Main init
   useEffect(() => {
@@ -201,13 +458,11 @@ const CesiumViewer = ({
         viewer.scene.backgroundColor = Color.fromCssColorString('#0a1628')
         viewer.scene.skyAtmosphere.show = true
 
-        // OSM Buildings
         const tileset = await Cesium3DTileset.fromIonAssetId(96188)
         if (!mountedRef.current || viewer.isDestroyed()) return
         viewer.scene.primitives.add(tileset)
         tilesetRef.current = tileset
 
-        // Building count
         tileset.tileLoad.addEventListener(() => {
           if (onBuildingCount) {
             const count = tileset.statistics?.numberOfTilesWithContentReady ?? 0
@@ -215,11 +470,10 @@ const CesiumViewer = ({
           }
         })
 
-        if (onLoad) onLoad()
+        if (onLoad) onLoad(viewer)
 
-        // Fly to Dubai Marina
         viewer.camera.flyTo({
-          destination: Cartesian3.fromDegrees(55.1404, 25.0820, 600),
+          destination: Cartesian3.fromDegrees(55.1404, 25.0820, 1500),
           orientation: {
             heading: CesiumMath.toRadians(0),
             pitch: CesiumMath.toRadians(-40),
@@ -228,7 +482,6 @@ const CesiumViewer = ({
           duration: 3,
         })
 
-        // Live camera coords
         viewer.camera.changed.addEventListener(() => {
           if (!onCameraMove) return
           const pos = viewer.camera.positionCartographic
@@ -236,12 +489,12 @@ const CesiumViewer = ({
             lat: CesiumMath.toDegrees(pos.latitude).toFixed(4),
             lng: CesiumMath.toDegrees(pos.longitude).toFixed(4),
             alt: (pos.height / 1000).toFixed(1),
+            heading: viewer.camera.heading,
           })
         })
 
-        // Building click
         viewer.screenSpaceEventHandler.setInputAction((click) => {
-          if (measureMode) return
+          if (measureMode || viewshedMode) return
           const picked = viewer.scene.pick(click.position)
           if (!defined(picked) || !picked.getProperty) return
 
@@ -250,8 +503,8 @@ const CesiumViewer = ({
           const carto = Cartographic.fromCartesian(cartesian)
 
           const props = {
-            name: picked.getProperty('name') ?? picked.getProperty('name:en') ?? 'Unknown',
-            use: picked.getProperty('building') ?? 'Unknown',
+            name:   picked.getProperty('name') ?? picked.getProperty('name:en') ?? 'Unknown',
+            use:    picked.getProperty('building') ?? 'Unknown',
             height: picked.getProperty('cesium#estimatedHeight')
               ? Number(picked.getProperty('cesium#estimatedHeight')).toFixed(1)
               : picked.getProperty('height') ?? null,
@@ -272,6 +525,7 @@ const CesiumViewer = ({
     return () => {
       mountedRef.current = false
       if (measureHandlerRef.current) measureHandlerRef.current.destroy()
+      if (viewshedHandlerRef.current) viewshedHandlerRef.current.destroy()
       if (viewerRef.current && !viewerRef.current.isDestroyed()) {
         viewerRef.current.destroy()
         viewerRef.current = null
@@ -285,6 +539,8 @@ const CesiumViewer = ({
       style={{ width: '100%', height: '100%', background: '#0a1628' }}
     />
   )
-}
+})
+
+CesiumViewer.displayName = 'CesiumViewer'
 
 export default CesiumViewer

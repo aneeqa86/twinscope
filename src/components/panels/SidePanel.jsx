@@ -2,15 +2,21 @@ import { useState } from 'react'
 import clsx from 'clsx'
 
 const CITIES = [
-  { name: 'Dubai', lat: 55.1404, lng: 25.0820, alt: 600 },
-  { name: 'Riyadh', lat: 46.6753, lng: 24.7136, alt: 600 },
-  { name: 'Doha', lat: 51.5310, lng: 25.2854, alt: 600 },
+  { name: 'Dubai',  lat: 25.0820, lng: 55.1404, alt: 1500 },
+  { name: 'Riyadh', lat: 24.7136, lng: 46.6753, alt: 1500 },
+  { name: 'Doha',   lat: 25.2854, lng: 51.5310, alt: 1500 },
 ]
 
-const LAYERS = [
+const BUILDING_LAYERS = [
   { id: 'default', label: 'Default' },
-  { id: 'height', label: 'By Height' },
-  { id: 'use', label: 'By Use Type' },
+  { id: 'height',  label: 'By Height' },
+  { id: 'use',     label: 'By Use Type' },
+]
+
+const OSM_LAYERS = [
+  { id: 'poi',   label: 'Points of Interest', color: '#06b6d4' },
+  { id: 'roads', label: 'Road Network',        color: '#f97316' },
+  { id: 'age',   label: 'Building Age',        color: '#a855f7' },
 ]
 
 const HEIGHT_LEGEND = [
@@ -27,16 +33,73 @@ const USE_LEGEND = [
   { color: '#94a3b8', label: 'Unknown' },
 ]
 
-const SidePanel = ({ onCityChange, onLayerChange, activeLayer, cameraPos, buildingCount, sunMode, onSunToggle, measureMode, onMeasureToggle }) => {
-  const [activeCity, setActiveCity] = useState('Dubai')
-  const [collapsed, setCollapsed] = useState(false)
+const AGE_LEGEND = [
+  { color: '#ef4444', label: 'Before 1970' },
+  { color: '#f97316', label: '1970s' },
+  { color: '#eab308', label: '1980s' },
+  { color: '#10b981', label: '1990s' },
+  { color: '#06b6d4', label: '2000s' },
+  { color: '#3b82f6', label: '2010s' },
+  { color: '#a855f7', label: '2020s+' },
+]
+
+const POI_LEGEND = [
+  { color: '#ef4444', label: 'Hospital' },
+  { color: '#eab308', label: 'School' },
+  { color: '#10b981', label: 'Mosque' },
+  { color: '#06b6d4', label: 'Metro' },
+  { color: '#a855f7', label: 'Mall' },
+  { color: '#22c55e', label: 'Park' },
+  { color: '#3b82f6', label: 'Hotel' },
+  { color: '#f97316', label: 'Restaurant' },
+]
+
+const ROAD_LEGEND = [
+  { color: '#ef4444', label: 'Motorway' },
+  { color: '#f97316', label: 'Trunk' },
+  { color: '#eab308', label: 'Primary' },
+  { color: '#06b6d4', label: 'Secondary' },
+  { color: '#475569', label: 'Residential' },
+]
+
+const OSM_LEGENDS = {
+  poi:   { title: 'POI TYPES',        items: POI_LEGEND,  dot: true },
+  roads: { title: 'ROAD TYPES',       items: ROAD_LEGEND, dot: false },
+  age:   { title: 'CONSTRUCTION ERA', items: AGE_LEGEND,  dot: true },
+}
+
+const SidePanel = ({
+  onCityChange,
+  onLayerChange,
+  activeLayer,
+  cameraPos,
+  buildingCount,
+  sunMode,
+  onSunToggle,
+  measureMode,
+  onMeasureToggle,
+  onResetCamera,
+  activeOsmLayers,
+  onOsmLayerToggle,
+  histogramActive,
+  onHistogramToggle,
+  viewshedMode,
+  onViewshedToggle,
+}) => {
+  const [activeCity,      setActiveCity]      = useState('Dubai')
+  const [collapsed,       setCollapsed]       = useState(false)
+  const [expandedLegends, setExpandedLegends] = useState({})
 
   const handleCity = (city) => {
     setActiveCity(city.name)
     onCityChange(city)
   }
 
-  const legend = activeLayer === 'height'
+  const toggleLegend = (id) => {
+    setExpandedLegends((prev) => ({ ...prev, [id]: !prev[id] }))
+  }
+
+  const buildingLegend = activeLayer === 'height'
     ? HEIGHT_LEGEND
     : activeLayer === 'use'
     ? USE_LEGEND
@@ -55,8 +118,10 @@ const SidePanel = ({ onCityChange, onLayerChange, activeLayer, cameraPos, buildi
       </button>
 
       {!collapsed && (
-        <div className="bg-[#0a1628]/90 backdrop-blur-sm border border-cyan-900/40 rounded-xl overflow-hidden shadow-2xl">
-
+        <div
+          className="bg-[#0a1628]/90 backdrop-blur-sm border border-cyan-900/40 rounded-xl overflow-hidden shadow-2xl"
+          style={{ maxHeight: 'calc(100vh - 6rem)', overflowY: 'auto' }}
+        >
           <div className="px-4 py-3 border-b border-cyan-900/40">
             <p className="text-xs text-cyan-400 font-mono tracking-widest">CONTROL PANEL</p>
           </div>
@@ -99,11 +164,11 @@ const SidePanel = ({ onCityChange, onLayerChange, activeLayer, cameraPos, buildi
             </div>
           </div>
 
-          {/* Layer */}
+          {/* Building style */}
           <div className="px-4 py-3 border-b border-cyan-900/40">
-            <p className="text-xs text-slate-500 mb-2 tracking-wider">LAYER</p>
+            <p className="text-xs text-slate-500 mb-2 tracking-wider">BUILDING STYLE</p>
             <div className="flex flex-col gap-1">
-              {LAYERS.map((layer) => (
+              {BUILDING_LAYERS.map((layer) => (
                 <button
                   key={layer.id}
                   onClick={() => onLayerChange(layer.id)}
@@ -118,22 +183,86 @@ const SidePanel = ({ onCityChange, onLayerChange, activeLayer, cameraPos, buildi
                 </button>
               ))}
             </div>
+
+            {buildingLegend && (
+              <div className="mt-3 pt-3 border-t border-cyan-900/40">
+                <div className="flex flex-col gap-1.5">
+                  {buildingLegend.map((item) => (
+                    <div key={item.label} className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-sm shrink-0" style={{ background: item.color }} />
+                      <span className="text-xs text-slate-400">{item.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Legend */}
-          {legend && (
-            <div className="px-4 py-3 border-b border-cyan-900/40">
-              <p className="text-xs text-slate-500 mb-2 tracking-wider">LEGEND</p>
-              <div className="flex flex-col gap-1.5">
-                {legend.map((item) => (
-                  <div key={item.label} className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-sm shrink-0" style={{ background: item.color }} />
-                    <span className="text-xs text-slate-400">{item.label}</span>
+          {/* OSM layers */}
+          <div className="px-4 py-3 border-b border-cyan-900/40">
+            <p className="text-xs text-slate-500 mb-2 tracking-wider">OSM LAYERS</p>
+            <div className="flex flex-col gap-1">
+              {OSM_LAYERS.map((layer) => {
+                const active   = activeOsmLayers.includes(layer.id)
+                const legend   = OSM_LEGENDS[layer.id]
+                const expanded = expandedLegends[layer.id]
+
+                return (
+                  <div key={layer.id}>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => onOsmLayerToggle(layer.id)}
+                        className={clsx(
+                          'flex-1 text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2',
+                          active ? 'bg-white/10 border border-white/20' : 'text-slate-400 hover:bg-white/5'
+                        )}
+                        style={active ? { color: layer.color, borderColor: layer.color + '60' } : {}}
+                      >
+                        <div
+                          className="w-2 h-2 rounded-full shrink-0"
+                          style={{ background: active ? layer.color : '#475569' }}
+                        />
+                        {layer.label}
+                      </button>
+
+                      {active && (
+                        <button
+                          onClick={() => toggleLegend(layer.id)}
+                          className="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-300 transition-colors text-xs"
+                        >
+                          {expanded ? '▴' : '▾'}
+                        </button>
+                      )}
+                    </div>
+
+                    {active && expanded && legend && (
+                      <div className="mt-1.5 mb-1 pl-3">
+                        {legend.dot ? (
+                          <div className="grid grid-cols-2 gap-1">
+                            {legend.items.map((item) => (
+                              <div key={item.label} className="flex items-center gap-1.5">
+                                <div className="w-2 h-2 rounded-full shrink-0" style={{ background: item.color }} />
+                                <span className="text-xs text-slate-500">{item.label}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-1">
+                            {legend.items.map((item) => (
+                              <div key={item.label} className="flex items-center gap-2">
+                                <div className="w-5 h-0.5 shrink-0" style={{ background: item.color }} />
+                                <span className="text-xs text-slate-500">{item.label}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
+                )
+              })}
             </div>
-          )}
+          </div>
 
           {/* Tools */}
           <div className="px-4 py-3 border-b border-cyan-900/40">
@@ -151,15 +280,54 @@ const SidePanel = ({ onCityChange, onLayerChange, activeLayer, cameraPos, buildi
                 ☀ Sun Simulation
               </button>
               <button
-                onClick={onMeasureToggle}
+                onClick={() => onMeasureToggle('distance')}
                 className={clsx(
                   'text-left px-3 py-2 rounded-lg text-sm transition-colors',
-                  measureMode
+                  measureMode === 'distance'
                     ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40'
                     : 'text-slate-400 hover:bg-white/5'
                 )}
               >
                 ⟺ Measure Distance
+              </button>
+              <button
+                onClick={() => onMeasureToggle('area')}
+                className={clsx(
+                  'text-left px-3 py-2 rounded-lg text-sm transition-colors',
+                  measureMode === 'area'
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                    : 'text-slate-400 hover:bg-white/5'
+                )}
+              >
+                ⬡ Measure Area
+              </button>
+              <button
+                onClick={onResetCamera}
+                className="text-left px-3 py-2 rounded-lg text-sm text-slate-400 hover:bg-white/5 transition-colors"
+              >
+                ⌂ Reset Camera
+              </button>
+              <button
+                onClick={onHistogramToggle}
+                className={clsx(
+                  'text-left px-3 py-2 rounded-lg text-sm transition-colors',
+                  histogramActive
+                    ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40'
+                    : 'text-slate-400 hover:bg-white/5'
+                )}
+              >
+                ▦ Height Histogram
+              </button>
+              <button
+                onClick={onViewshedToggle}
+                className={clsx(
+                  'text-left px-3 py-2 rounded-lg text-sm transition-colors',
+                  viewshedMode
+                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
+                    : 'text-slate-400 hover:bg-white/5'
+                )}
+              >
+                ◉ Line of Sight
               </button>
             </div>
           </div>
@@ -169,9 +337,9 @@ const SidePanel = ({ onCityChange, onLayerChange, activeLayer, cameraPos, buildi
             <p className="text-xs text-slate-500 mb-2 tracking-wider">SCENE</p>
             {[
               { label: 'Tiles loaded', value: buildingCount ?? '—' },
-              { label: 'Data source', value: 'OSM' },
-              { label: 'Terrain', value: 'Cesium World' },
-              { label: 'Renderer', value: 'WebGL 2' },
+              { label: 'Data source',  value: 'OSM' },
+              { label: 'Terrain',      value: 'Cesium World' },
+              { label: 'Renderer',     value: 'WebGL 2' },
             ].map(({ label, value }) => (
               <div key={label} className="flex justify-between text-xs mb-1">
                 <span className="text-slate-500">{label}</span>
