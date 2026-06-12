@@ -113,7 +113,8 @@ const BuildingHistogram = ({ viewer, active, cameraPos }) => {
   if (!active) return null
 
   return (
-    <div className="absolute bottom-16 right-16 z-50 w-72">
+    // Mobile: centred, nearly full width. Desktop: bottom-right fixed width.
+    <div className="absolute bottom-16 left-4 right-4 sm:left-auto sm:right-16 z-50 sm:w-72">
       <div className="bg-[#0a1628]/90 backdrop-blur-sm border border-cyan-900/40 rounded-xl overflow-hidden shadow-2xl">
 
         {/* Header */}
@@ -164,7 +165,6 @@ const BuildingHistogram = ({ viewer, active, cameraPos }) => {
                   </BarChart>
                 </ResponsiveContainer>
 
-                {/* Tallest bucket callout */}
                 {(() => {
                   const peak = chartData.reduce((a, b) => b.count > a.count ? b : a, chartData[0])
                   return peak.count > 0 ? (

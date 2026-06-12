@@ -2,15 +2,17 @@ const BuildingPopup = ({ building, onClose }) => {
   if (!building) return null
 
   const rows = [
-    { label: 'Name', value: building.name },
-    { label: 'Use', value: building.use },
-    { label: 'Height', value: building.height ? `${building.height}m` : 'Unknown' },
-    { label: 'Levels', value: building.levels },
+    { label: 'Name',        value: building.name },
+    { label: 'Use',         value: building.use },
+    { label: 'Height',      value: building.height ? `${building.height}m` : 'Unknown' },
+    { label: 'Levels',      value: building.levels },
     { label: 'Coordinates', value: building.coords },
   ]
 
   return (
-    <div className="absolute bottom-8 right-4 z-50 w-72 bg-[#0a1628]/95 backdrop-blur-sm border border-cyan-900/40 rounded-xl overflow-hidden shadow-2xl">
+    // Mobile: full width minus margins, sits above bottom nav area
+    // Desktop: fixed w-72 at bottom-right as before
+    <div className="absolute bottom-8 right-4 z-50 w-[calc(100vw-2rem)] sm:w-72 bg-[#0a1628]/95 backdrop-blur-sm border border-cyan-900/40 rounded-xl overflow-hidden shadow-2xl">
 
       <div className="flex items-center justify-between px-4 py-3 border-b border-cyan-900/40">
         <p className="text-xs text-cyan-400 font-mono tracking-widest">BUILDING INFO</p>

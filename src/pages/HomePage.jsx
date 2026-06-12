@@ -45,6 +45,8 @@ const HomePage = () => {
   const [histogramActive,  setHistogramActive]  = useState(false)
   const [viewshedMode,     setViewshedMode]     = useState(false)
   const [viewshedResult,   setViewshedResult]   = useState(null)
+  // Mobile drawer
+  const [panelOpen,        setPanelOpen]        = useState(false)
 
   const fetchSunTimes = async (city) => {
     try {
@@ -68,6 +70,7 @@ const HomePage = () => {
     setMeasureResult(null)
     setViewshedResult(null)
     if (sunMode) fetchSunTimes(city)
+    setPanelOpen(false) // close drawer after selecting city on mobile
   }
 
   const handleSunToggle = () => {
@@ -117,7 +120,11 @@ const HomePage = () => {
     <div className="w-screen h-screen overflow-hidden bg-[#0a1628] relative">
       <LoadingScreen visible={loading} />
 
-      <Navbar cameraPos={cameraPos} />
+      <Navbar
+        cameraPos={cameraPos}
+        onMenuToggle={() => setPanelOpen((p) => !p)}
+        panelOpen={panelOpen}
+      />
 
       <LandmarkSearch
         viewer={viewer}
@@ -141,6 +148,8 @@ const HomePage = () => {
         onHistogramToggle={() => setHistogramActive((prev) => !prev)}
         viewshedMode={viewshedMode}
         onViewshedToggle={handleViewshedToggle}
+        mobileOpen={panelOpen}
+        onMobileClose={() => setPanelOpen(false)}
       />
 
       <CesiumViewer
@@ -205,39 +214,39 @@ const HomePage = () => {
         measureMode={measureMode}
       />
 
-     {viewshedMode && (
-      <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-50">
-        <div className="bg-[#0a1628]/90 backdrop-blur-sm border border-cyan-900/40 rounded-xl px-4 py-2.5 shadow-2xl">
-          {!viewshedResult ? (
-            <p className="text-xs text-slate-400 font-mono">
-              Click observer point, then target point
-            </p>
-          ) : (
-            <div className="flex items-center gap-3">
-              <div
-                className="w-2 h-2 rounded-full"
-                style={{ background: viewshedResult === 'clear' ? '#10b981' : '#ef4444' }}
-              />
-              <p
-                className="text-xs font-mono"
-                style={{ color: viewshedResult === 'clear' ? '#10b981' : '#ef4444' }}
-              >
-                {viewshedResult === 'clear' ? 'Line of sight — CLEAR' : 'Line of sight — BLOCKED'}
+      {viewshedMode && (
+        <div className="absolute bottom-20 sm:bottom-24 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] sm:w-auto">
+          <div className="bg-[#0a1628]/90 backdrop-blur-sm border border-cyan-900/40 rounded-xl px-4 py-2.5 shadow-2xl">
+            {!viewshedResult ? (
+              <p className="text-xs text-slate-400 font-mono text-center sm:text-left">
+                Click observer point, then target point
               </p>
-              <button
-                onClick={() => {
-                  cesiumRef.current?.clearViewshed()
-                  setViewshedResult(null)
-                }}
-                className="text-slate-500 hover:text-slate-300 text-xs ml-2 border border-slate-700 rounded px-2 py-0.5 hover:border-slate-500 transition-colors"
-              >
-                Clear
-              </button>
-            </div>
-          )}
+            ) : (
+              <div className="flex items-center justify-center sm:justify-start gap-3">
+                <div
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ background: viewshedResult === 'clear' ? '#10b981' : '#ef4444' }}
+                />
+                <p
+                  className="text-xs font-mono"
+                  style={{ color: viewshedResult === 'clear' ? '#10b981' : '#ef4444' }}
+                >
+                  {viewshedResult === 'clear' ? 'Line of sight — CLEAR' : 'Line of sight — BLOCKED'}
+                </p>
+                <button
+                  onClick={() => {
+                    cesiumRef.current?.clearViewshed()
+                    setViewshedResult(null)
+                  }}
+                  className="text-slate-500 hover:text-slate-300 text-xs ml-2 border border-slate-700 rounded px-2 py-0.5 hover:border-slate-500 transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    )}
+      )}
 
     </div>
   )

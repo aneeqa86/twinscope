@@ -14,7 +14,8 @@ const WeatherPanel = ({ city }) => {
   const [weather,   setWeather]   = useState(null)
   const [aqi,       setAqi]       = useState(null)
   const [loading,   setLoading]   = useState(false)
-  const [collapsed, setCollapsed] = useState(false)
+  // Collapsed by default on mobile (we detect via state init, actual hiding via CSS)
+  const [collapsed, setCollapsed] = useState(true)
 
   useEffect(() => {
     if (!city) return
@@ -58,7 +59,9 @@ const WeatherPanel = ({ city }) => {
   }, [city])
 
   return (
-    <div className="absolute right-16 top-20 z-50">
+    // On mobile: sits below navbar on the right, max-w so it never bleeds off screen
+    // On desktop: same right-16 top-20 position as before
+    <div className="absolute right-4 sm:right-16 top-[4.5rem] sm:top-20 z-50 max-w-[calc(100vw-5rem)] sm:max-w-none">
       {/* Toggle button */}
       <button
         onClick={() => setCollapsed(!collapsed)}
