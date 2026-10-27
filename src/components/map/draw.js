@@ -119,11 +119,18 @@ export const squareBbox = ({ lng, lat }, halfSizeM) => {
   return { south: lat - dLat, north: lat + dLat, west: lng - dLng, east: lng + dLng }
 }
 
-/** Fly the camera to look at a lng/lat from the south. */
-export const flyToPoint = (viewer, lng, lat, range = 600) => {
-  viewer.camera.flyToBoundingSphere(new Cesium.BoundingSphere(Cesium.Cartesian3.fromDegrees(lng, lat), 40), {
-    offset: new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-38), range),
-    duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1.8,
+/**
+ * Frame a lng/lat from the south. The target sits on the terrain (plus `lift` metres),
+ * so it works where the ground is far above the ellipsoid, as in Riyadh.
+ */
+export const flyToPoint = async (viewer, lng, lat, range = 600, lift = 40, pitchDeg = -34) => {
+  const ground = await terrainHeight(viewer, lng, lat)
+  if (viewer.isDestroyed()) return
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  viewer.camera.flyToBoundingSphere(new Cesium.BoundingSphere(Cesium.Cartesian3.fromDegrees(lng, lat, ground + lift), 30), {
+    offset: new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(pitchDeg), range),
+    duration: reduced ? 0 : 2.2,
+    easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT,
   })
 }
 

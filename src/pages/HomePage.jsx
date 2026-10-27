@@ -171,8 +171,9 @@ const HomePage = () => {
     setLosResult(null)
   }
 
+  // Frame the landmark from the south; `alt` sets how far back the camera stands
   const handleLandmark = (l) => {
-    setFlyTo({ lat: l.lat, lng: l.lng, alt: l.alt, pitch: -34, _t: Date.now() })
+    if (viewer) flyToPoint(viewer, l.lng, l.lat, Math.max(500, l.alt * 2.2), Math.min(150, l.alt * 0.25))
   }
 
   const handleFlyToBuilding = () => {
