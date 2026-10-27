@@ -106,7 +106,11 @@ export function useViewScore(viewer, active, city, targetId, setStyleOverride) {
         // Footprint gives the facade the views start from; fall back to the click point
         let ringLL = null
         if (building.type === 'way') {
-          const geom = await fetchWayFootprint(building.id).catch(() => null)
+          // Don't let a slow OSM server hold the analysis: after 8 s use the clicked point
+          const geom = await Promise.race([
+            fetchWayFootprint(building.id).catch(() => null),
+            new Promise((resolve) => setTimeout(() => resolve(null), 8000)),
+          ])
           if (geom?.length >= 4) ringLL = openRing(geom.map((g) => [g.lon, g.lat]))
         }
         if (stale()) return
