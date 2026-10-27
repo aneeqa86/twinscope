@@ -130,3 +130,25 @@ export const flyToPoint = (viewer, lng, lat, range = 600) => {
 /** OSM element ids → a 3D Tiles style condition matching those buildings. */
 export const idCondition = (ids) =>
   `regExp('^(${ids.join('|')})$').test(String(\${feature["elementId"]}))`
+
+/**
+ * World position under a screen point. Prefers the depth buffer (hits buildings),
+ * then the terrain, then the ellipsoid. Some GPUs/drivers can't read depth, and the
+ * ellipsoid alone is ~600 m below Riyadh's ground, so the terrain fallback matters.
+ */
+export const pickWorld = (viewer, position) => {
+  const scene = viewer.scene
+  if (scene.pickPositionSupported) {
+    const p = scene.pickPosition(position)
+    if (Cesium.defined(p)) return p
+  }
+  const ray = viewer.camera.getPickRay(position)
+  return (ray && scene.globe.pick(ray, scene)) ?? viewer.camera.pickEllipsoid(position) ?? null
+}
+
+export const pickLngLat = (viewer, position) => {
+  const cart = pickWorld(viewer, position)
+  if (!cart) return null
+  const c = Cesium.Cartographic.fromCartesian(cart)
+  return { lng: Cesium.Math.toDegrees(c.longitude), lat: Cesium.Math.toDegrees(c.latitude), height: c.height }
+}

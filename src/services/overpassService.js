@@ -1,4 +1,3 @@
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
 
 // Serial queue — prevents simultaneous requests to Overpass. A failed request
 // rejects for its caller but never blocks the requests queued behind it.
@@ -9,17 +8,48 @@ const enqueue = (fn) => {
   return run
 }
 
-const post = (query) =>
-  enqueue(() =>
-    fetch(OVERPASS_URL, {
+// Public Overpass instances. The main one rate-limits and is sometimes down, so a
+// failed or throttled request moves on to the next; the last server that answered
+// is tried first next time.
+const ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+]
+let preferred = 0
+
+const tryEndpoint = async (url, query) => {
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), 45000)
+  try {
+    const res = await fetch(url, {
       method: 'POST',
       body: `data=${encodeURIComponent(query)}`,
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    }).then((res) => {
-      if (!res.ok) throw new Error(`Overpass ${res.status}`)
-      return res.json()
+      signal: ctrl.signal,
     })
-  )
+    if (!res.ok) throw new Error(`Overpass ${res.status}`)
+    return await res.json()
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+const post = (query) =>
+  enqueue(async () => {
+    let lastError
+    for (let i = 0; i < ENDPOINTS.length; i++) {
+      const idx = (preferred + i) % ENDPOINTS.length
+      try {
+        const data = await tryEndpoint(ENDPOINTS[idx], query)
+        preferred = idx
+        return data
+      } catch (err) {
+        lastError = err
+      }
+    }
+    throw lastError
+  })
 
 export const fetchPOIs = async (bbox) => {
   const { south, west, north, east } = bbox

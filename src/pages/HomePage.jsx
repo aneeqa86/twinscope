@@ -246,7 +246,7 @@ const HomePage = () => {
       case 'access':
         return <AccessDock access={access} mode={accessMode} setMode={setAccessMode} category={accessCategory} setCategory={setAccessCategory} onClose={closeTool} mobile={isMobile} />
       case 'heat':
-        return <HeatDock heatParams={heatParams} setHeatParams={setHeatParams} onClose={closeTool} mobile={isMobile} />
+        return <HeatDock heatParams={heatParams} setHeatParams={setHeatParams} onCityView={() => setFlyTo({ lat: activeCity.lat - 0.28, lng: activeCity.lng, alt: 32000, pitch: -58, _t: Date.now() })} onClose={closeTool} mobile={isMobile} />
       case 'views':
         return <ViewsDock views={views} city={activeCity} targetId={viewTarget} setTargetId={setViewTarget} onClose={closeTool} mobile={isMobile} />
       default:

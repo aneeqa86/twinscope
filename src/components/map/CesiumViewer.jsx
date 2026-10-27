@@ -22,7 +22,7 @@ import {
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import { cssVar, HEIGHT_CLASSES, USE_CLASSES, ageClass } from '@/config/legends'
 import { fetchWayFootprint } from '@/services/overpassService'
-import { idCondition } from './draw'
+import { idCondition, pickWorld } from './draw'
 
 const CESIUM_TOKEN = import.meta.env.VITE_CESIUM_ION_TOKEN
 
@@ -325,7 +325,7 @@ const CesiumViewer = forwardRef(({
 
     if (measureMode === 'distance') {
       handler.setInputAction((click) => {
-        const cartesian = viewer.scene.pickPosition(click.position)
+        const cartesian = pickWorld(viewer, click.position)
         if (!cartesian) return
         if (measurePointsRef.current.length === 0) polylines.removeAll()
         measurePointsRef.current.push(cartesian)
@@ -352,7 +352,7 @@ const CesiumViewer = forwardRef(({
 
     if (measureMode === 'area') {
       handler.setInputAction((click) => {
-        const cartesian = viewer.scene.pickPosition(click.position)
+        const cartesian = pickWorld(viewer, click.position)
         if (!cartesian) return
         measurePointsRef.current.push(cartesian)
 
@@ -426,7 +426,7 @@ const CesiumViewer = forwardRef(({
     viewshedHandlerRef.current = handler
 
     handler.setInputAction(async (click) => {
-      const cartesian = viewer.scene.pickPosition(click.position)
+      const cartesian = pickWorld(viewer, click.position)
       if (!cartesian) return
 
       viewshedPointsRef.current.push(cartesian)
@@ -655,7 +655,7 @@ const CesiumViewer = forwardRef(({
             return
           }
 
-          const cartesian = viewer.scene.pickPosition(click.position)
+          const cartesian = pickWorld(viewer, click.position)
           if (!cartesian) return
           const carto = Cartographic.fromCartesian(cartesian)
           const lat = CesiumMath.toDegrees(carto.latitude)

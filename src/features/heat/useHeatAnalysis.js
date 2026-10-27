@@ -66,7 +66,7 @@ export function useHeatAnalysis(viewer, active, city, { hour, dayKey, lstOn, lst
       if (errors === 4) setLstStatus('error')
     })
     const layer = viewer.imageryLayers.addImageryProvider(provider)
-    layer.alpha = 0.62
+    layer.alpha = 0.55
     setLstStatus(`on:${date}`)
     return () => {
       removeErr()

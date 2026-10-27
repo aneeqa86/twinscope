@@ -3,7 +3,7 @@ import * as Cesium from 'cesium'
 import { fetchWayFootprint, fetchCoastline } from '@/services/overpassService'
 import { makeProjection, openRing, centroid, segmentIntersect, haversine } from '@/analysis/geo'
 import { FLOOR_HEIGHT } from '@/analysis/buildings'
-import { makeLayer, color, terrainHeight, squareBbox } from '@/components/map/draw'
+import { makeLayer, color, terrainHeight, squareBbox, pickWorld } from '@/components/map/draw'
 import { VIEW_LANDMARKS } from '@/config/cities'
 
 const EYE = 1.6
@@ -72,7 +72,7 @@ export function useViewScore(viewer, active, city, targetId, setStyleOverride) {
       const id = picked.getProperty('elementId')
       const height = Number(picked.getProperty('cesium#estimatedHeight')) || parseFloat(picked.getProperty('height')) || 0
       if (!id || height < FLOOR_HEIGHT) return
-      const cart = viewer.scene.pickPosition(click.position)
+      const cart = pickWorld(viewer, click.position)
       const c = cart && Cesium.Cartographic.fromCartesian(cart)
       setBuilding({
         id,

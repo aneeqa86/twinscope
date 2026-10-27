@@ -5,7 +5,7 @@ import { prepareBuildings, FLOOR_HEIGHT } from '@/analysis/buildings'
 import { makeProjection, pointInPolygon, polygonArea } from '@/analysis/geo'
 import { prismShadow } from '@/analysis/shadow'
 import { sunPosition, cityTime, studyDay } from '@/analysis/sun'
-import { makeLayer, groundPolygons, color, terrainHeight, squareBbox } from '@/components/map/draw'
+import { makeLayer, groundPolygons, color, terrainHeight, squareBbox, pickLngLat } from '@/components/map/draw'
 import { cssVar } from '@/config/legends'
 
 export const IMPACT_CLASSES = [
@@ -18,11 +18,9 @@ export const IMPACT_CLASSES = [
 // city's actual regulation; the user edits them to match the plot's zoning.
 export const DEFAULT_LIMITS = { maxHeight: 120, maxFar: 5, minSetback: 5 }
 
-const pickLngLat = (viewer, position) => {
-  const cart = viewer.scene.pickPosition(position) ?? viewer.camera.pickEllipsoid(position)
-  if (!cart) return null
-  const c = Cesium.Cartographic.fromCartesian(cart)
-  return [Cesium.Math.toDegrees(c.longitude), Cesium.Math.toDegrees(c.latitude)]
+const pickLL = (viewer, position) => {
+  const p = pickLngLat(viewer, position)
+  return p ? [p.lng, p.lat] : null
 }
 
 const rectRing = ([x1, y1], [x2, y2]) => [
@@ -70,7 +68,7 @@ export function usePlanScenario(viewer, active, city, params, setStyleOverride) 
     if (!viewer || !active || phase === 'ready') return
     const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas)
     handler.setInputAction((click) => {
-      const ll = pickLngLat(viewer, click.position)
+      const ll = pickLL(viewer, click.position)
       if (!ll) return
       if (!cornerRef.current) {
         cornerRef.current = ll
@@ -98,7 +96,7 @@ export function usePlanScenario(viewer, active, city, params, setStyleOverride) 
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK)
     handler.setInputAction((move) => {
       if (!cornerRef.current) return
-      const ll = pickLngLat(viewer, move.endPosition)
+      const ll = pickLL(viewer, move.endPosition)
       if (ll) hoverRef.current = ll
     }, Cesium.ScreenSpaceEventType.MOUSE_MOVE)
     return () => {
@@ -114,23 +112,28 @@ export function usePlanScenario(viewer, active, city, params, setStyleOverride) 
     let cancelled = false
     const centre = { lng: (site.a[0] + site.b[0]) / 2, lat: (site.a[1] + site.b[1]) / 2 }
     setContext({ status: 'loading', centre })
-    Promise.all([terrainHeight(viewer, centre.lng, centre.lat), fetchBuildingFootprints(squareBbox(centre, 700))])
-      .then(([ground, elements]) => {
+    // Ground height and neighbours load independently: losing OSM must not sink the tower
+    ;(async () => {
+      const ground = await terrainHeight(viewer, centre.lng, centre.lat)
+      if (cancelled) return
+      setContext({ status: 'loading', centre, ground, buildings: [] })
+      try {
+        const elements = await fetchBuildingFootprints(squareBbox(centre, 700))
         if (cancelled) return
         const { buildings } = prepareBuildings(elements, centre)
         setContext({ status: 'ready', centre, ground, buildings })
-      })
-      .catch((err) => {
+      } catch (err) {
         if (cancelled) return
         console.error('Site context failed:', err)
-        setContext({ status: 'error', centre, ground: 0, buildings: [] })
-      })
+        setContext({ status: 'error', centre, ground, buildings: [] })
+      }
+    })()
     return () => { cancelled = true }
   }, [viewer, site])
 
   // Massing, checks and shadow study
   const scenario = useMemo(() => {
-    if (!site || !context?.centre) return null
+    if (!site || !context?.centre || context.ground === undefined) return null
     const proj = makeProjection(context.centre.lng, context.centre.lat)
     const siteRing = rectRing(proj.toXY(...site.a), proj.toXY(...site.b))
     const [minX, minY] = siteRing[0]

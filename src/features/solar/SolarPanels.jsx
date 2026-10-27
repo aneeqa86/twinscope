@@ -5,7 +5,8 @@ import { SOLAR_CLASSES, SOLAR_ASSUMPTIONS } from './useSolarAnalysis'
 
 export const SolarDock = ({ solar, onClose, mobile }) => (
   <DockShell tool="solar" onClose={onClose} mobile={mobile}>
-    {solar.status === 'ready' || solar.status === 'idle' ? (
+    {/* Errors show in the results card; the dock keeps the instruction */}
+    {solar.status !== 'loading' && solar.status !== 'too-far' ? (
       <Instruct
         text="Rooftops in the dashed square are coloured by yearly solar yield"
         hint="Pan the map to analyse another 900 m square"

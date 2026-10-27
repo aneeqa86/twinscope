@@ -3,7 +3,7 @@ import * as Cesium from 'cesium'
 import { useAreaOfInterest } from '@/hooks/useAreaOfInterest'
 import { fetchWalkNetwork, fetchEverydayServices } from '@/services/overpassService'
 import { buildGraph, nearestNode, shortestDistances } from '@/analysis/network'
-import { makeLayer, groundLines, color, aoiOutline, squareBbox } from '@/components/map/draw'
+import { makeLayer, groundLines, color, aoiOutline, squareBbox, pickLngLat } from '@/components/map/draw'
 import { ACCESS_CATEGORIES, ACCESS_BANDS, WALK_M_PER_MIN, categorise } from './categories'
 
 const LIMIT_M = 15 * WALK_M_PER_MIN // 1,200 m
@@ -12,13 +12,6 @@ const COVERAGE_HALF = 700
 const COVERAGE_MARGIN = 800 // services just outside the area still serve it
 
 const bandFor = (metres) => ACCESS_BANDS.findIndex((b) => metres / WALK_M_PER_MIN <= b.maxMin)
-
-const pickLngLat = (viewer, position) => {
-  const cart = viewer.scene.pickPosition(position) ?? viewer.camera.pickEllipsoid(position)
-  if (!cart) return null
-  const c = Cesium.Cartographic.fromCartesian(cart)
-  return { lng: Cesium.Math.toDegrees(c.longitude), lat: Cesium.Math.toDegrees(c.latitude) }
-}
 
 const servicePoints = (elements) =>
   elements

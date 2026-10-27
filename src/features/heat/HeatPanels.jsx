@@ -1,4 +1,5 @@
-import { Segmented, Switch } from '@/components/primitives'
+import Icon from '@/components/icons/Icon'
+import { Button, Segmented, Switch } from '@/components/primitives'
 import { DockShell } from '@/components/shell/ModeDock'
 import { ReportCard, AnalysisStatus, Headline, ShareBars, fmt } from '@/components/shell/ReportCard'
 import { formatHour24 } from '@/utils'
@@ -15,7 +16,7 @@ const LST_PRESETS = [
   { id: 'recent', label: 'Recent' },
 ]
 
-export const HeatDock = ({ heatParams, setHeatParams, onClose, mobile }) => {
+export const HeatDock = ({ heatParams, setHeatParams, onCityView, onClose, mobile }) => {
   const set = (k) => (v) => setHeatParams((p) => ({ ...p, [k]: v }))
   return (
     <DockShell
@@ -54,6 +55,15 @@ export const HeatDock = ({ heatParams, setHeatParams, onClose, mobile }) => {
           <Segmented label="Satellite date" options={LST_PRESETS} value={heatParams.lstPreset} onChange={set('lstPreset')} className={heatParams.lstOn ? '' : 'pointer-events-none opacity-40'} />
         </div>
       </div>
+      {heatParams.lstOn && (
+        <div className="mt-3 flex items-center justify-between gap-3 border-t border-line pt-3">
+          <p className="text-[12px] leading-snug text-ink-3">Satellite cells are ~1 km wide, so the heat pattern reads at city scale.</p>
+          <Button variant="secondary" size={mobile ? 'lg' : 'md'} onClick={onCityView}>
+            <Icon name="up" size={15} />
+            City-wide view
+          </Button>
+        </div>
+      )}
     </DockShell>
   )
 }
@@ -82,7 +92,7 @@ export const HeatReport = ({ heat, heatParams, onClose }) => {
       }
     >
       {heat.status !== 'ready' ? (
-        <AnalysisStatus state={heat} />
+        <AnalysisStatus state={heat} zoomHint="Street shade runs at district scale. Zoom in below 6 km to see it; the satellite layer reads best zoomed out." />
       ) : r?.night ? (
         <p className="text-[12.5px] text-ink-2">The sun is below the horizon at {formatHour24(heatParams.hour)}.</p>
       ) : r ? (

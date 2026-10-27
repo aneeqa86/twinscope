@@ -171,6 +171,11 @@ export const PlanReport = ({ plan, params, setParams, onClose, onFlyTo }) => {
             <p className="ts-label mb-2">Shadow impact · {day.label}</p>
             {context?.status === 'loading' ? (
               <p className="font-mono text-[12px] text-ink-3">Loading neighbouring buildings…</p>
+            ) : context?.status === 'error' ? (
+              <p className="text-[12.5px] text-bad">
+                Couldn't load neighbouring buildings from OpenStreetMap, so shadow impact can't be measured. The
+                shadow study is still drawn on the map. Try New site in a moment.
+              </p>
             ) : (
               <>
                 <Headline
