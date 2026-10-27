@@ -16,11 +16,12 @@ export const CityList = ({ cities, activeCity, weather, onSelect, large = false 
           type="button"
           role="radio"
           aria-checked={active}
+          data-no-press
           onClick={() => onSelect(city)}
           className={clsx(
             'ts-transition flex items-center justify-between gap-3 rounded-[10px] px-3 text-left',
             large ? 'h-14' : 'h-12',
-            active ? 'bg-selected' : 'hover:bg-hover'
+            active ? 'bg-selected' : 'hover:bg-hover active:bg-selected'
           )}
         >
           <span className="flex items-center gap-2.5">

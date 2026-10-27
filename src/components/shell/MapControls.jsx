@@ -7,11 +7,11 @@ const Compass = ({ heading, size }) => (
     role="img"
     aria-label={`Heading ${Math.round(((heading * 180) / Math.PI + 360) % 360)}°`}
   >
-    <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden>
-      <g transform={`rotate(${(-heading * 180) / Math.PI}, 15, 15)`}>
-        <polygon points="15,4 18,15 15,13.2 12,15" fill="var(--ts-accent)" />
-        <polygon points="15,26 18,15 15,16.8 12,15" fill="var(--ts-text-3)" />
-        <text x="15" y="3.6" textAnchor="middle" fontSize="5.5" fontFamily="var(--ts-mono)" fill="var(--ts-text-2)">N</text>
+    <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden>
+      <g transform={`rotate(${(-heading * 180) / Math.PI}, 17, 17)`}>
+        <text x="17" y="8.2" textAnchor="middle" fontSize="7" fontWeight="500" fontFamily="var(--ts-mono)" fill="var(--ts-text)">N</text>
+        <polygon points="17,10 20,18 17,16.6 14,18" fill="var(--ts-accent)" />
+        <polygon points="17,28 20,18 17,19.4 14,18" fill="var(--ts-text-3)" />
       </g>
     </svg>
   </div>
@@ -19,7 +19,7 @@ const Compass = ({ heading, size }) => (
 
 /** Slot D (desktop) and the mobile right column, which adds Reset. */
 const MapControls = ({ heading = 0, onZoomIn, onZoomOut, onReset, className }) => {
-  const btn = 'ts-transition flex h-11 w-11 items-center justify-center text-ink-2 hover:bg-hover hover:text-ink'
+  const btn = 'ts-transition flex h-11 w-11 items-center justify-center text-ink-2 hover:bg-hover hover:text-ink active:bg-selected focus-visible:outline-offset-[-3px]'
   return (
     <div className={clsx('absolute z-20 flex flex-col items-center gap-3', className)}>
       <Compass heading={heading} size="h-11 w-11" />

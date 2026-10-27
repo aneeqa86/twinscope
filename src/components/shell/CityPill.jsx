@@ -12,7 +12,7 @@ const CityPill = ({ cities, activeCity, weather, weatherConfigured, onCityChange
   useEffect(() => {
     if (!open) return
     const onDown = (e) => { if (!rootRef.current?.contains(e.target)) setOpen(false) }
-    const onKey = (e) => { if (e.key === 'Escape') setOpen(false) }
+    const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); setOpen(false) } }
     document.addEventListener('mousedown', onDown)
     document.addEventListener('keydown', onKey)
     return () => {
@@ -59,7 +59,7 @@ const CityPill = ({ cities, activeCity, weather, weatherConfigured, onCityChange
       <Presence
         show={open}
         motion="down"
-        className="ts-pop absolute left-0 top-[52px] z-30 w-[372px] max-w-[calc(100vw-40px)] p-3"
+        className="ts-pop absolute left-0 top-[52px] z-30 w-[372px] max-w-[calc(100vw-40px)] origin-top-left p-3"
         role="dialog"
         aria-label="Cities and live conditions"
       >

@@ -215,7 +215,7 @@ const AboutPage = () => (
         <Brand />
         <Link
           to="/"
-          className="ts-transition inline-flex h-11 items-center gap-1.5 rounded-[11px] bg-accent px-4 text-[13px] font-semibold text-accent-on hover:brightness-110"
+          className="ts-transition ts-press inline-flex h-11 items-center gap-1.5 rounded-[11px] bg-accent px-4 text-[13px] font-semibold text-accent-on hover:brightness-110"
         >
           Open the map
           <Icon name="up" size={15} />
@@ -240,7 +240,7 @@ const AboutPage = () => (
         <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
           <Link
             to="/"
-            className="ts-transition inline-flex h-11 items-center gap-1.5 rounded-[11px] bg-accent px-5 text-[14px] font-semibold text-accent-on hover:brightness-110"
+            className="ts-transition ts-press inline-flex h-11 items-center gap-1.5 rounded-[11px] bg-accent px-5 text-[14px] font-semibold text-accent-on hover:brightness-110"
           >
             Launch TwinScope
           </Link>
@@ -248,7 +248,7 @@ const AboutPage = () => (
             href="https://github.com/aneeqa86/twinscope"
             target="_blank"
             rel="noopener noreferrer"
-            className="ts-transition inline-flex h-11 items-center gap-1.5 rounded-[11px] border border-line-strong bg-subtle px-5 text-[14px] font-medium text-ink hover:bg-hover"
+            className="ts-transition ts-press inline-flex h-11 items-center gap-1.5 rounded-[11px] border border-line-strong bg-subtle px-5 text-[14px] font-medium text-ink hover:bg-hover"
           >
             Source on GitHub
             <Icon name="up" size={15} />

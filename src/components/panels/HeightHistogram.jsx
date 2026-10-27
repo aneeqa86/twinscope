@@ -39,9 +39,12 @@ const HeightHistogram = ({ data, total, loading, onClose, bare = false }) => {
       </header>
 
       <div className="mt-3 h-[132px]" aria-busy={loading}>
-        {!hasData && !loading ? (
-          <p className="flex h-full items-center justify-center text-[12.5px] text-ink-3">No height data in the current view</p>
+        {!hasData ? (
+          <p className="flex h-full items-center justify-center font-mono text-[12px] text-ink-3">
+            {loading ? 'Querying OSM heights…' : 'No height data in the current view'}
+          </p>
         ) : (
+          <div className="h-full" style={{ opacity: loading ? 0.45 : 1, transition: 'opacity var(--ts-dur-fast)' }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ top: 16, right: 0, left: -24, bottom: 0 }} barCategoryGap="30%">
               <CartesianGrid vertical={false} stroke={`${BONE}0.08)`} strokeDasharray="2 4" />
@@ -65,6 +68,7 @@ const HeightHistogram = ({ data, total, loading, onClose, bare = false }) => {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+          </div>
         )}
       </div>
 

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import clsx from 'clsx'
 import Icon from '@/components/icons/Icon'
 import { Segmented } from '@/components/primitives'
@@ -13,66 +13,113 @@ const TABS = [
   { id: 'city',   label: 'City' },
 ]
 
+const FLICK_VELOCITY = 0.11 // px/ms: a quick flick is enough, whatever the distance
+const SHEET_TRANSITION = 'transform var(--ts-dur-sheet) cubic-bezier(0.32, 0.72, 0, 1)'
+
+// Past either detent the sheet keeps moving, but with growing resistance
+const rubberBand = (overshoot) => Math.sign(overshoot) * Math.sqrt(Math.abs(overshoot)) * 4
+
 /**
- * Mobile bottom sheet. Peek shows the tool row; half shows the Layers / Style / City tabs.
- * Drag the handle (or tap it) to move between detents.
+ * Mobile bottom sheet. The sheet is always the half height and slides with transform,
+ * so dragging never triggers layout. Peek shows the tool row; half shows the tabs.
  */
 const BottomSheet = ({ detent, onDetentChange, tab, onTabChange, activeTool, onToolChange, children }) => {
-  const [dragHeight, setDragHeight] = useState(null)
+  const sheetRef = useRef(null)
   const dragRef = useRef(null)
-  const maxHalf = Math.min(SHEET_HALF, window.innerHeight - 140)
-  const target = detent === 'half' ? maxHalf : SHEET_PEEK
-  const height = dragHeight ?? target
+  const half = Math.min(SHEET_HALF, window.innerHeight - 140)
+  const peekOffset = half - SHEET_PEEK
+  const offsetFor = (d) => (d === 'half' ? 0 : peekOffset)
+
+  // Keep the DOM in sync when the detent changes from outside (menu button, city chip)
+  useEffect(() => {
+    const el = sheetRef.current
+    if (!el || dragRef.current) return
+    el.style.transition = SHEET_TRANSITION
+    el.style.transform = `translateY(${offsetFor(detent)}px)`
+  }, [detent, peekOffset])
 
   const onPointerDown = (e) => {
-    dragRef.current = { startY: e.clientY, startH: target, moved: false }
-    e.currentTarget.setPointerCapture(e.pointerId)
-  }
-  const onPointerMove = (e) => {
-    const d = dragRef.current
-    if (!d) return
-    const dy = d.startY - e.clientY
-    if (Math.abs(dy) > 4) d.moved = true
-    if (d.moved) setDragHeight(Math.max(SHEET_PEEK - 20, Math.min(maxHalf + 20, d.startH + dy)))
-  }
-  const onPointerUp = () => {
-    const d = dragRef.current
-    dragRef.current = null
-    if (!d) return
-    if (!d.moved) {
-      onDetentChange(detent === 'half' ? 'peek' : 'half')
-    } else {
-      const h = dragHeight ?? target
-      onDetentChange(h > (SHEET_PEEK + maxHalf) / 2 ? 'half' : 'peek')
+    if (dragRef.current) return // ignore a second finger mid-drag
+    dragRef.current = {
+      id: e.pointerId,
+      startY: e.clientY,
+      startOffset: offsetFor(detent),
+      lastY: e.clientY,
+      lastT: e.timeStamp,
+      velocity: 0,
+      moved: false,
     }
-    setDragHeight(null)
+    e.currentTarget.setPointerCapture(e.pointerId)
+    sheetRef.current.style.transition = 'none'
   }
 
+  const onPointerMove = (e) => {
+    const d = dragRef.current
+    if (!d || e.pointerId !== d.id) return
+    const dy = e.clientY - d.startY
+    if (Math.abs(dy) > 4) d.moved = true
+    const dt = e.timeStamp - d.lastT
+    if (dt > 0) d.velocity = (e.clientY - d.lastY) / dt
+    d.lastY = e.clientY
+    d.lastT = e.timeStamp
+    if (!d.moved) return
+
+    let next = d.startOffset + dy
+    if (next < 0) next = rubberBand(next)
+    else if (next > peekOffset) next = peekOffset + rubberBand(next - peekOffset)
+    sheetRef.current.style.transform = `translateY(${next}px)`
+  }
+
+  const onPointerUp = (e) => {
+    const d = dragRef.current
+    if (!d || e.pointerId !== d.id) return
+    dragRef.current = null
+
+    let target
+    if (!d.moved) {
+      target = detent === 'half' ? 'peek' : 'half'
+    } else if (Math.abs(d.velocity) > FLICK_VELOCITY) {
+      target = d.velocity < 0 ? 'half' : 'peek'
+    } else {
+      const current = d.startOffset + (e.clientY - d.startY)
+      target = current < peekOffset / 2 ? 'half' : 'peek'
+    }
+
+    const el = sheetRef.current
+    el.style.transition = SHEET_TRANSITION
+    el.style.transform = `translateY(${offsetFor(target)}px)`
+    if (target !== detent) onDetentChange(target)
+  }
+
+  const isHalf = detent === 'half'
   const toolButton = 'ts-transition flex h-[60px] w-14 flex-col items-center justify-center gap-1 rounded-[12px] text-[11px] font-medium'
 
   return (
     <div
+      ref={sheetRef}
       className="fixed inset-x-0 bottom-0 z-20 flex flex-col overflow-hidden rounded-t-sheet border-t border-line shadow-sheet"
       style={{
-        height,
+        height: half,
+        transform: `translateY(${offsetFor(detent)}px)`,
+        transition: SHEET_TRANSITION,
         background: 'var(--ts-glass-sheet)',
         backdropFilter: 'var(--ts-blur)',
         WebkitBackdropFilter: 'var(--ts-blur)',
-        transition: dragHeight === null ? 'height var(--ts-dur-sheet) var(--ts-ease-settle)' : 'none',
-        paddingBottom: 'env(safe-area-inset-bottom)',
+        willChange: 'transform',
       }}
       role="region"
       aria-label="Map controls"
     >
       <button
         type="button"
-        aria-label={detent === 'half' ? 'Collapse panel' : 'Expand panel'}
-        aria-expanded={detent === 'half'}
+        data-no-press
+        aria-label={isHalf ? 'Collapse panel' : 'Expand panel'}
+        aria-expanded={isHalf}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        className="flex h-[22px] w-full shrink-0 touch-none items-center justify-center"
+        className="flex h-[22px] w-full shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing"
       >
         <span aria-hidden className="h-1 w-10 rounded-full bg-[rgba(244,240,230,0.28)]" />
       </button>
@@ -80,9 +127,9 @@ const BottomSheet = ({ detent, onDetentChange, tab, onTabChange, activeTool, onT
       <nav aria-label="Map tools" className="flex shrink-0 justify-between px-3">
         <button
           type="button"
-          onClick={() => { onTabChange('layers'); onDetentChange(detent === 'half' && tab === 'layers' ? 'peek' : 'half') }}
-          aria-expanded={detent === 'half'}
-          className={clsx(toolButton, detent === 'half' ? 'bg-accent-wash text-accent' : 'text-ink-2')}
+          onClick={() => { onTabChange('layers'); onDetentChange(isHalf && tab === 'layers' ? 'peek' : 'half') }}
+          aria-expanded={isHalf}
+          className={clsx(toolButton, isHalf ? 'bg-accent-wash text-accent' : 'text-ink-2 active:bg-hover')}
         >
           <Icon name="layers" size={22} />
           Layers
@@ -94,7 +141,7 @@ const BottomSheet = ({ detent, onDetentChange, tab, onTabChange, activeTool, onT
             aria-pressed={activeTool === t.id}
             title={t.title}
             onClick={() => { onToolChange(activeTool === t.id ? null : t.id); onDetentChange('peek') }}
-            className={clsx(toolButton, activeTool === t.id ? 'bg-accent text-accent-on' : 'text-ink-2')}
+            className={clsx(toolButton, activeTool === t.id ? 'bg-accent text-accent-on' : 'text-ink-2 active:bg-hover')}
           >
             <Icon name={t.icon} size={22} />
             {t.label}
@@ -102,14 +149,22 @@ const BottomSheet = ({ detent, onDetentChange, tab, onTabChange, activeTool, onT
         ))}
       </nav>
 
-      {detent === 'half' && (
-        <div className="flex min-h-0 flex-1 flex-col px-4 pt-3">
-          <Segmented size="tab" label="Panel" options={TABS} value={tab} onChange={onTabChange} />
-          <div className="ts-scroll mt-3 min-h-0 flex-1 overflow-y-auto pb-6" role="tabpanel">
-            {children}
-          </div>
+      {/* Always mounted so it slides in with the sheet; inert while only the tool row shows */}
+      <div
+        className="flex min-h-0 flex-1 flex-col px-4 pt-3"
+        style={{ opacity: isHalf ? 1 : 0, transition: `opacity ${isHalf ? 240 : 120}ms var(--ts-ease-settle)` }}
+        aria-hidden={!isHalf}
+        {...(!isHalf ? { inert: '' } : {})}
+      >
+        <Segmented size="tab" label="Panel" options={TABS} value={tab} onChange={onTabChange} />
+        <div
+          className="ts-scroll mt-3 min-h-0 flex-1 overflow-y-auto"
+          role="tabpanel"
+          style={{ paddingBottom: 'calc(24px + env(safe-area-inset-bottom, 0px))' }}
+        >
+          {children}
         </div>
-      )}
+      </div>
     </div>
   )
 }

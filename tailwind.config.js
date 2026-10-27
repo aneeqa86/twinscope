@@ -5,6 +5,8 @@ export default {
   presets: [tsPreset],
   content: ['./index.html', './src/**/*.{js,jsx}'],
   darkMode: 'class',
+  // hover: only applies where the primary pointer can hover, so taps never leave sticky hover states
+  future: { hoverOnlyWhenSupported: true },
   theme: {
     extend: {
       colors: {

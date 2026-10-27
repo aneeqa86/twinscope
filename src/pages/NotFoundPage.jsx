@@ -10,7 +10,7 @@ export default function NotFoundPage() {
       <p className="mt-2 text-[14px] text-ink-2">The page you're looking for doesn't exist or has been moved.</p>
       <Link
         to="/"
-        className="ts-transition mt-7 inline-flex h-11 items-center rounded-[11px] bg-accent px-5 text-[14px] font-semibold text-accent-on hover:brightness-110"
+        className="ts-transition ts-press mt-7 inline-flex h-11 items-center rounded-[11px] bg-accent px-5 text-[14px] font-semibold text-accent-on hover:brightness-110"
       >
         Back to the map
       </Link>

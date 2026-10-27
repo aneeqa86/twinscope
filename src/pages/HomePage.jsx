@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import CesiumViewer from '@/components/map/CesiumViewer'
 import OsmLayers from '@/components/map/OsmLayers'
 import LoadingScreen from '@/components/map/LoadingScreen'
@@ -139,6 +139,20 @@ const HomePage = () => {
     setLoad((l) => ({ ...l, progress: Math.max(l.progress, value), stage: Math.max(l.stage, stage) }))
   }, [])
 
+  // Escape backs out one level: active tool, then selection, then the layers panel
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return
+      const tag = document.activeElement?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      if (activeTool) setActiveTool(null)
+      else if (selectedBuilding) setSelectedBuilding(null)
+      else if (layersOpen) setLayersOpen(false)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [activeTool, selectedBuilding, layersOpen])
+
   const closeTool = () => handleToolChange(null)
   const measureAgain = () => { cesiumRef.current?.clearMeasure(); setMeasureResult(null) }
   const clearSight = () => { cesiumRef.current?.clearViewshed(); setLosResult(null) }
@@ -220,13 +234,16 @@ const HomePage = () => {
             onLandmark={handleLandmark}
           />
 
-          <MapControls
-            heading={cameraPos?.heading ?? 0}
-            onZoomIn={() => cesiumRef.current?.zoomIn()}
-            onZoomOut={() => cesiumRef.current?.zoomOut()}
-            onReset={handleResetCamera}
-            className="right-3 top-32"
-          />
+          {/* The half sheet covers this column, so hide it rather than leave it half-buried */}
+          <Presence show={sheetDetent === 'peek'} motion="fade">
+            <MapControls
+              heading={cameraPos?.heading ?? 0}
+              onZoomIn={() => cesiumRef.current?.zoomIn()}
+              onZoomOut={() => cesiumRef.current?.zoomOut()}
+              onReset={handleResetCamera}
+              className="right-3 top-32"
+            />
+          </Presence>
 
           {/* Mode card slot: one card above the sheet; hidden while the sheet is half open */}
           {sheetDetent === 'peek' && (

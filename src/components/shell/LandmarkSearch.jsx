@@ -1,7 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import Icon from '@/components/icons/Icon'
-import { Presence } from '@/components/primitives'
 import { LANDMARKS } from '@/config/cities'
 
 /** Curated landmark search for the active city. "/" focuses, arrows + Enter pick, Escape closes. */
@@ -72,7 +71,7 @@ const LandmarkSearch = ({ cityName, onPick, mobile = false, className }) => {
     <div ref={rootRef} className={clsx('relative', className)}>
       <div
         className={clsx(
-          'ts-panel flex items-center gap-2.5 !rounded-pill px-3.5 focus-within:border-line-strong',
+          'ts-panel ts-transition flex items-center gap-2.5 !rounded-pill px-3.5 focus-within:!border-[rgba(255,122,77,0.55)]',
           mobile ? 'h-12' : 'h-11'
         )}
       >
@@ -113,7 +112,9 @@ const LandmarkSearch = ({ cityName, onPick, mobile = false, className }) => {
         )}
       </div>
 
-      <Presence show={open} motion="down" className="ts-pop absolute left-0 right-0 top-[calc(100%+8px)] z-30 overflow-hidden p-1.5">
+      {/* No animation: this opens from the keyboard and on every focus */}
+      {open && (
+      <div className="ts-pop absolute left-0 right-0 top-[calc(100%+8px)] z-30 overflow-hidden p-1.5">
         <p className="ts-label px-2.5 pb-1.5 pt-1.5">Landmarks · {cityName}</p>
         <ul id={listId} role="listbox" aria-label={`${cityName} landmarks`} className="ts-scroll max-h-[min(400px,60vh)] overflow-y-auto">
           {results.length === 0 && (
@@ -129,7 +130,7 @@ const LandmarkSearch = ({ cityName, onPick, mobile = false, className }) => {
               onClick={() => pick(l)}
               onMouseEnter={() => setCursor(i)}
               className={clsx(
-                'flex h-11 cursor-pointer items-center gap-3 rounded-[10px] px-2.5',
+                'flex h-11 cursor-pointer items-center gap-3 rounded-[10px] px-2.5 active:bg-selected',
                 i === cursor && 'bg-hover'
               )}
             >
@@ -144,7 +145,8 @@ const LandmarkSearch = ({ cityName, onPick, mobile = false, className }) => {
             </li>
           ))}
         </ul>
-      </Presence>
+      </div>
+      )}
     </div>
   )
 }

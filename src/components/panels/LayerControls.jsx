@@ -122,7 +122,8 @@ const LayerRow = ({ layer, active, count, onToggle, large }) => {
           onClick={() => setExpanded((e) => !e)}
           aria-expanded={expanded}
           aria-controls={legendId}
-          className="ts-transition flex h-full min-w-0 flex-1 items-center gap-2 rounded-control text-left hover:text-ink"
+          data-no-press
+          className="ts-transition -mr-1 flex h-full min-w-0 flex-1 items-center gap-2 rounded-control px-1 text-left hover:text-ink active:bg-hover"
         >
           <span className={clsx('flex-1 truncate font-medium', large ? 'text-[15px]' : 'text-[13.5px]', active ? 'text-ink' : 'text-ink-2')}>
             {layer.label}

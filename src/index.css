@@ -11,8 +11,15 @@
     padding: 0;
   }
 
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+
   html,
   body {
+    /* App, not a document: no pull-to-refresh or page rubber-band behind the map */
+    overscroll-behavior: none;
     background: var(--ts-void);
     color: var(--ts-text);
     font-family: var(--ts-sans);
@@ -25,8 +32,35 @@
     outline-offset: 2px;
   }
 
+  /* Controls, not content: no tap delay, no long-press text selection */
+  button,
+  a,
+  [role='button'],
+  [role='option'],
+  [role='switch'] {
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+
   button {
     cursor: pointer;
+  }
+
+  /* Press feedback on pointer-down, for every input type */
+  button:not(:disabled):not([data-no-press]):active,
+  .ts-press:active {
+    transform: scale(0.97);
+  }
+
+  /* iOS zooms into inputs under 16px; touch devices always get 16px */
+  @media (pointer: coarse) {
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
   }
 
   button:disabled {
@@ -65,9 +99,18 @@
   }
 
   .ts-transition {
-    transition-property: background-color, color, border-color, opacity, transform;
+    transition-property: background-color, color, border-color, opacity, transform, box-shadow;
     transition-duration: var(--ts-dur-fast);
     transition-timing-function: var(--ts-ease-settle);
+  }
+
+  .ts-press {
+    transition: transform var(--ts-dur-fast) var(--ts-ease-settle);
+  }
+
+  /* Inner scrollers keep their own bounce but never scroll the page */
+  .ts-scroll {
+    overscroll-behavior: contain;
   }
 
   .ts-scroll {
@@ -83,8 +126,8 @@
 @keyframes ts-out-right { to   { opacity: 0; transform: translateX(14px); } }
 @keyframes ts-in-up     { from { opacity: 0; transform: translateY(8px); } }
 @keyframes ts-out-down  { to   { opacity: 0; transform: translateY(8px); } }
-@keyframes ts-in-down   { from { opacity: 0; transform: translateY(-6px); } }
-@keyframes ts-out-up    { to   { opacity: 0; transform: translateY(-6px); } }
+@keyframes ts-in-down   { from { opacity: 0; transform: translateY(-4px) scale(0.97); } }
+@keyframes ts-out-up    { to   { opacity: 0; transform: translateY(-4px) scale(0.97); } }
 @keyframes ts-fade-in   { from { opacity: 0; } }
 @keyframes ts-fade-out  { to   { opacity: 0; } }
 
@@ -99,8 +142,10 @@
 .ts-motion-fade[data-state='open']    { animation: ts-fade-in   180ms var(--ts-ease-settle) both; }
 .ts-motion-fade[data-state='closed']  { animation: ts-fade-out  180ms var(--ts-ease-settle) both; }
 
+/* Reduced motion keeps the fades (they aid comprehension) but drops the movement */
 @media (prefers-reduced-motion: reduce) {
-  [data-state] { animation: none !important; }
+  [data-state='open'] { animation: ts-fade-in 120ms linear both !important; }
+  [data-state='closed'] { animation: ts-fade-out 100ms linear both !important; }
   * { scroll-behavior: auto !important; }
 }
 
@@ -134,6 +179,9 @@
   border: 3px solid var(--ts-on-accent);
   box-shadow: 0 0 0 1px var(--ts-accent), 0 4px 12px rgba(0, 0, 0, 0.5);
 }
+.ts-range::-webkit-slider-thumb { transition: transform var(--ts-dur-fast) var(--ts-ease-settle); }
+.ts-range:active::-webkit-slider-thumb { transform: scale(1.12); }
+.ts-range:active::-moz-range-thumb { transform: scale(1.12); }
 .ts-range:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--ts-accent); outline-offset: 3px; }
 .ts-range:focus-visible::-moz-range-thumb { outline: 2px solid var(--ts-accent); outline-offset: 3px; }
 

@@ -20,7 +20,7 @@ const Readout = ({ cameraPos, showCoords = true }) => (
     </div>
     <Link
       to="/about"
-      className="ts-panel ts-transition flex h-11 items-center !rounded-pill px-4 text-[12.5px] font-medium text-ink-2 hover:text-ink"
+      className="ts-panel ts-transition ts-press flex h-11 items-center !rounded-pill px-4 text-[12.5px] font-medium text-ink-2 hover:text-ink"
     >
       About
     </Link>
