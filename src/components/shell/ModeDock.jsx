@@ -1,13 +1,12 @@
 import clsx from 'clsx'
 import Icon from '@/components/icons/Icon'
 import { Button, IconButton } from '@/components/primitives'
+import { Segmented } from '@/components/primitives'
 import { formatHour24 } from '@/utils'
-import { TOOLS } from './tools'
-
-const TOOL_BY_ID = Object.fromEntries(TOOLS.map((t) => [t.id, t]))
+import { TOOL_BY_ID } from './tools'
 
 /** Header / body / actions shell shared by every analysis mode. */
-const DockShell = ({ tool, aside, onClose, children, actions, mobile }) => {
+export const DockShell = ({ tool, aside, onClose, children, actions, mobile }) => {
   const meta = TOOL_BY_ID[tool]
   return (
     <section
@@ -30,7 +29,7 @@ const DockShell = ({ tool, aside, onClose, children, actions, mobile }) => {
   )
 }
 
-const Instruct = ({ text, hint }) => (
+export const Instruct = ({ text, hint }) => (
   <div aria-live="polite">
     <p className="text-[15px] text-ink">{text}</p>
     {hint && <p className="mt-1 font-mono text-[11.5px] text-ink-3">{hint}</p>}
@@ -106,13 +105,27 @@ export const SunDock = ({ value, onChange, sunTimes, cityName, onClose, mobile }
 
 // ─── Measure distance / area ─────────────────────────────────────────────
 
-export const MeasureDock = ({ mode, result, onAgain, onDone, mobile }) => {
-  const isArea = mode === 'area'
+const MEASURE_KINDS = [
+  { id: 'distance', label: 'Distance' },
+  { id: 'area', label: 'Area' },
+]
+
+export const MeasureDock = ({ kind, onKindChange, result, onAgain, onDone, mobile }) => {
+  const isArea = kind === 'area'
   return (
     <DockShell
-      tool={isArea ? 'area' : 'dist'}
+      tool="measure"
       onClose={onDone}
       mobile={mobile}
+      aside={
+        <Segmented
+          label="Measure"
+          options={MEASURE_KINDS}
+          value={kind}
+          onChange={onKindChange}
+          className="w-[168px]"
+        />
+      }
       actions={
         result && (
           <>
@@ -125,7 +138,7 @@ export const MeasureDock = ({ mode, result, onAgain, onDone, mobile }) => {
       {!result ? (
         <Instruct
           text={isArea ? 'Click points, double-click to close' : 'Click two points on the map'}
-          hint={isArea ? 'Step 1 of 2 · at least 3 points' : 'Step 1 of 2 · geodesic surface distance'}
+          hint={isArea ? 'At least 3 points' : 'Geodesic surface distance'}
         />
       ) : (
         <div aria-live="polite">
@@ -150,7 +163,7 @@ export const SightDock = ({ result, onClear, onClose, mobile }) => {
       actions={result && <Button variant="primary" size={mobile ? 'lg' : 'md'} onClick={onClear}>Clear</Button>}
     >
       {!result ? (
-        <Instruct text="Click observer point, then target point" hint="Step 1 of 2 · eye height 1.7 m" />
+        <Instruct text="Click observer point, then target point" hint="Eye height 1.7 m at both ends" />
       ) : (
         <div aria-live="polite" className="flex flex-wrap items-center gap-3">
           <span

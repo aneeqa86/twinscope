@@ -3,6 +3,7 @@ import * as Cesium from 'cesium'
 import { fetchPOIs, fetchRoads, fetchBuildingAges } from '@/services/overpassService'
 import { cssVar, POI_CATEGORIES, ROAD_CLASSES, ageClass } from '@/config/legends'
 import { POI_GLYPHS } from '@/components/icons/iconData'
+import { groundLines } from './draw'
 
 const POI_BY_ID = Object.fromEntries(POI_CATEGORIES.map((c) => [c.id, c]))
 const ROAD_BY_ID = Object.fromEntries(ROAD_CLASSES.map((c) => [c.id, c]))
@@ -167,6 +168,7 @@ const OsmLayers = ({ viewer, activeLayers, cameraPos, onCounts }) => {
               width: 28,
               height: 36,
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               disableDepthTestDistance: Number.POSITIVE_INFINITY,
               scaleByDistance: new Cesium.NearFarScalar(100, 1.1, 2000, 0.45),
             },
@@ -179,6 +181,7 @@ const OsmLayers = ({ viewer, activeLayers, cameraPos, onCounts }) => {
               style: Cesium.LabelStyle.FILL_AND_OUTLINE,
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
               pixelOffset: new Cesium.Cartesian2(0, -40),
+              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 600),
               disableDepthTestDistance: Number.POSITIVE_INFINITY,
             },
@@ -210,26 +213,22 @@ const OsmLayers = ({ viewer, activeLayers, cameraPos, onCounts }) => {
 
       fetchRoads(bbox).then((elements) => {
         reportCount('roads', elements.length)
+        // One ground-clamped primitive: follows terrain (Riyadh sits ~600 m up)
+        const lines = []
         elements.forEach((el) => {
-          if (!el.geometry) return
+          if (!el.geometry || el.geometry.length < 2) return
           const road = ROAD_BY_ID[el.tags?.highway] ?? ROAD_BY_ID.residential
-          const color = cssVar(road.token)
-          const positions = el.geometry.map(({ lat, lon }) =>
-            Cesium.Cartesian3.fromDegrees(lon, lat, 3)
-          )
-          if (positions.length < 2) return
-
-          const polylines = new Cesium.PolylineCollection()
-          polylines.add({
-            positions,
+          lines.push({
+            coords: el.geometry.map(({ lat, lon }) => [lon, lat]),
+            color: Cesium.Color.fromCssColorString(cssVar(road.token)).withAlpha(0.9),
             width: road.width,
-            material: Cesium.Material.fromType('Color', {
-              color: Cesium.Color.fromCssColorString(color).withAlpha(0.9),
-            }),
           })
-          viewer.scene.primitives.add(polylines)
-          roadRef.current.push(polylines)
         })
+        const prim = groundLines(lines)
+        if (prim) {
+          viewer.scene.primitives.add(prim)
+          roadRef.current.push(prim)
+        }
       }).catch(console.error)
     })
   }, [viewer, activeLayers.includes('roads'), cameraPos?.lat, cameraPos?.lng])

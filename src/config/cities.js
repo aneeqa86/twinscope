@@ -1,8 +1,27 @@
+// Riyadh first: it is the city the app opens on.
+// gridCO2: approximate grid emission factor, kg CO2 per kWh, for solar savings estimates.
 export const CITIES = [
-  { name: 'Dubai',  lat: 25.0820, lng: 55.1404, alt: 1500, tz: 4 },
-  { name: 'Riyadh', lat: 24.7136, lng: 46.6753, alt: 1500, tz: 3 },
-  { name: 'Doha',   lat: 25.2854, lng: 51.5310, alt: 1500, tz: 3 },
+  { name: 'Riyadh', lat: 24.7136, lng: 46.6753, alt: 1500, tz: 3, coastal: false, gridCO2: 0.57 },
+  { name: 'Dubai',  lat: 25.0820, lng: 55.1404, alt: 1500, tz: 4, coastal: true,  gridCO2: 0.40 },
+  { name: 'Doha',   lat: 25.2854, lng: 51.5310, alt: 1500, tz: 3, coastal: true,  gridCO2: 0.49 },
 ]
+
+export const DEFAULT_CITY = CITIES[0]
+
+// Tall landmarks used as view targets, with their architectural height in metres
+export const VIEW_LANDMARKS = {
+  Riyadh: [
+    { name: 'Kingdom Centre',     lat: 24.7114, lng: 46.6740, height: 302 },
+    { name: 'Al Faisaliah Tower', lat: 24.6916, lng: 46.6836, height: 267 },
+  ],
+  Dubai: [
+    { name: 'Burj Khalifa', lat: 25.1972, lng: 55.2744, height: 828 },
+    { name: 'Burj Al Arab', lat: 25.1412, lng: 55.1853, height: 321 },
+  ],
+  Doha: [
+    { name: 'Aspire Tower', lat: 25.2631, lng: 51.4480, height: 300 },
+  ],
+}
 
 export const LANDMARKS = {
   Dubai: [

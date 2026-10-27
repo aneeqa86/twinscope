@@ -19,6 +19,31 @@ const STACK = [
 
 const FEATURES = [
   {
+    icon: 'cube',
+    title: 'Development Scenario & Zoning',
+    desc: 'Draw a plot, set floors and setback, and test the proposed tower against height, floor-area-ratio and setback limits. An hourly shadow study shows which neighbours lose direct sun, and for how long.',
+  },
+  {
+    icon: 'panel',
+    title: 'Rooftop Solar Potential',
+    desc: 'Every roof in view is scored for yearly yield from NASA POWER irradiance, roof area and shading traced from neighbouring buildings across the year. Totals in MWh, MWp and CO₂ avoided.',
+  },
+  {
+    icon: 'rings',
+    title: '15-Minute City Access',
+    desc: 'Walking-time analysis on the real OSM street network: how many everyday needs a point reaches in 15 minutes, or a coverage map showing which streets are far from transit, schools or clinics.',
+  },
+  {
+    icon: 'flame',
+    title: 'Heat & Street Shade',
+    desc: 'MODIS satellite land-surface temperature, plus the share of each walkable street in building shadow at any hour on peak-summer and solstice days.',
+  },
+  {
+    icon: 'binoculars',
+    title: 'View Score by Floor',
+    desc: 'Click a tower to see, floor by floor, whether it sees the sea or a landmark. Sightlines sample terrain and every building in between, with Earth curvature.',
+  },
+  {
     icon: 'building',
     title: '3D City Visualization',
     desc: 'Real OSM buildings streamed via Cesium ion, rendered in WebGL 2 on a photorealistic globe with world terrain.',
@@ -66,7 +91,7 @@ const FEATURES = [
   {
     icon: 'search',
     title: 'Landmark Search',
-    desc: 'Curated landmark search for Dubai, Riyadh, and Doha. Select a landmark and the camera flies directly to it.',
+    desc: 'Curated landmark search for Riyadh, Dubai and Doha. Select a landmark and the camera flies directly to it.',
   },
   {
     icon: 'reset',
@@ -76,7 +101,7 @@ const FEATURES = [
   {
     icon: 'up',
     title: 'Multi-City Support',
-    desc: 'Instantly fly between Dubai, Riyadh, and Doha · the three key smart city markets in the Gulf region.',
+    desc: 'Instantly fly between Riyadh, Dubai and Doha · the three key smart city markets in the Gulf region.',
   },
 ]
 
@@ -107,6 +132,16 @@ const DATA_SOURCES = [
     badge: 'Real-time',
   },
   {
+    source: 'NASA POWER',
+    detail: 'Long-term global horizontal irradiance used for rooftop solar yield',
+    badge: 'Live API',
+  },
+  {
+    source: 'NASA GIBS · MODIS Terra',
+    detail: 'Daytime land surface temperature (~1 km) for the heat analysis',
+    badge: 'Live API',
+  },
+  {
     source: 'Bing Maps Imagery',
     detail: 'Satellite base imagery streamed via Cesium ion',
     badge: 'Cesium ion',
@@ -123,6 +158,12 @@ const GIS_CONCEPTS = [
   { title: 'GeoJSON Rendering',    desc: 'Vector road and POI data rendered as Cesium primitives' },
   { title: 'Camera Analytics',     desc: 'Live bounding box computation for viewport-aware queries' },
   { title: 'Height Profiling',     desc: 'Building height distribution analysis from real OSM data' },
+  { title: 'Network Analysis',     desc: 'Multi-source Dijkstra on the walking network for isochrones and service coverage' },
+  { title: 'Solar Geometry',       desc: 'NOAA solar position with ray-marched shading for roof yield and street shade' },
+  { title: 'Scenario Testing',     desc: 'Massing, zoning compliance and shadow impact of a proposed building' },
+  { title: 'Remote Sensing',       desc: 'MODIS land surface temperature draped over terrain' },
+  { title: 'Visibility Analysis',  desc: 'Per-floor sightlines against terrain and 3D buildings, with Earth curvature' },
+  { title: 'Spatial Indexing',     desc: 'Uniform grids for fast point-in-polygon tests over thousands of footprints' },
 ]
 
 // ─── Hero compare: surveyed city (solid) vs its twin (dashed outline) ────
@@ -229,13 +270,14 @@ const AboutPage = () => (
         <p className="ts-label">3D urban digital twin · Gulf cities</p>
         <h1 className="mx-auto mt-4 max-w-[780px] text-[34px] font-semibold leading-[1.08] tracking-[-0.02em] sm:text-[52px]">
           Every building in{' '}
-          <span className="font-serif font-normal italic">Dubai</span>,{' '}
-          <span className="font-serif font-normal italic">Riyadh</span> and{' '}
+          <span className="font-serif font-normal italic">Riyadh</span>,{' '}
+          <span className="font-serif font-normal italic">Dubai</span> and{' '}
           <span className="font-serif font-normal italic">Doha</span>, surveyed in 3D.
         </h1>
         <p className="mx-auto mt-5 max-w-[620px] text-[15px] leading-relaxed text-ink-2">
-          TwinScope streams OpenStreetMap buildings onto a real globe, then layers live weather, air quality and
-          spatial-analysis tools on top: sun and shadow, distance and area, line of sight, and height profiles.
+          TwinScope streams OpenStreetMap buildings onto a real globe and turns them into answers: whether a proposed
+          tower fits the zoning and whose sun it takes, which roofs should carry solar, which streets are a 15-minute
+          walk from transit, where pedestrians bake in the afternoon sun, and which floors see the sea.
         </p>
         <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
           <Link
@@ -300,7 +342,7 @@ const AboutPage = () => (
                 <li key={source} className="border-t border-line py-3 first:border-t-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-[13.5px] font-medium">{source}</p>
-                    <Badge live={badge === 'Real-time'}>{badge}</Badge>
+                    <Badge live={badge !== 'Cesium ion'}>{badge}</Badge>
                   </div>
                   <p className="mt-1 text-[12.5px] text-ink-3">{detail}</p>
                 </li>

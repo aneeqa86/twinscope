@@ -1,10 +1,12 @@
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
 
-// Serial queue — prevents simultaneous requests to Overpass
+// Serial queue — prevents simultaneous requests to Overpass. A failed request
+// rejects for its caller but never blocks the requests queued behind it.
 let queue = Promise.resolve()
 const enqueue = (fn) => {
-  queue = queue.then(() => fn()).catch(() => {})
-  return queue
+  const run = queue.then(() => fn())
+  queue = run.catch(() => {})
+  return run
 }
 
 const post = (query) =>
@@ -84,4 +86,53 @@ export const fetchWayFootprint = async (wayId) => {
   const query = `[out:json][timeout:15]; way(${wayId}); out geom;`
   const data = await post(query)
   return data?.elements?.[0]?.geometry ?? null
+}
+
+const bboxStr = ({ south, west, north, east }) => `${south},${west},${north},${east}`
+
+/** Building footprints with height tags, for shadow and solar analyses. */
+export const fetchBuildingFootprints = async (bbox) => {
+  const query = `[out:json][timeout:40]; way["building"](${bboxStr(bbox)}); out geom;`
+  const data = await post(query)
+  return data?.elements ?? []
+}
+
+/** Streets and paths a pedestrian can use (motorways and trunk roads excluded). */
+export const fetchWalkNetwork = async (bbox) => {
+  const query = `
+    [out:json][timeout:40];
+    way["highway"~"^(footway|pedestrian|path|living_street|residential|service|unclassified|tertiary|tertiary_link|secondary|secondary_link|primary|primary_link|steps|cycleway|track|corridor)$"]
+       ["foot"!="no"]["access"!~"^(private|no)$"](${bboxStr(bbox)});
+    out body geom;
+  `
+  const data = await post(query)
+  return data?.elements ?? []
+}
+
+/** Everyday services for 15-minute-city analysis. */
+export const fetchEverydayServices = async (bbox) => {
+  const b = bboxStr(bbox)
+  const query = `
+    [out:json][timeout:40];
+    (
+      nwr["amenity"~"^(school|kindergarten|college)$"](${b});
+      nwr["amenity"~"^(hospital|clinic|doctors|pharmacy)$"](${b});
+      nwr["healthcare"~"^(hospital|clinic|doctor|pharmacy)$"](${b});
+      nwr["railway"="station"]["station"~"^(subway|light_rail)$"](${b});
+      nwr["station"="subway"](${b});
+      node["highway"="bus_stop"](${b});
+      nwr["leisure"~"^(park|garden|playground)$"](${b});
+      nwr["shop"~"^(supermarket|convenience|greengrocer|bakery)$"](${b});
+      nwr["amenity"="place_of_worship"]["religion"="muslim"](${b});
+    );
+    out center tags;
+  `
+  const data = await post(query)
+  return data?.elements ?? []
+}
+
+export const fetchCoastline = async (bbox) => {
+  const query = `[out:json][timeout:30]; way["natural"="coastline"](${bboxStr(bbox)}); out geom;`
+  const data = await post(query)
+  return data?.elements ?? []
 }

@@ -39,3 +39,13 @@ export function usePrefersReducedMotion() {
   }, [])
   return reduced
 }
+
+export function useViewportHeight() {
+  const [h, setH] = useState(() => window.innerHeight)
+  useEffect(() => {
+    const onResize = () => setH(window.innerHeight)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+  return h
+}

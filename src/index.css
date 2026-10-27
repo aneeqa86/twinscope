@@ -194,3 +194,10 @@
   opacity: 0.55;
 }
 .cesium-widget-credits { font-family: var(--ts-mono); font-size: 10px; }
+
+/* Compact slider with a visible track (analysis docks) */
+.ts-range-sm { height: 26px; }
+.ts-range-sm::-webkit-slider-runnable-track { height: 4px; border-radius: 999px; background: rgba(244, 240, 230, 0.16); }
+.ts-range-sm::-moz-range-track { height: 4px; border-radius: 999px; background: rgba(244, 240, 230, 0.16); }
+.ts-range-sm::-webkit-slider-thumb { width: 18px; height: 18px; margin-top: -7px; border-width: 3px; }
+.ts-range-sm::-moz-range-thumb { width: 12px; height: 12px; }

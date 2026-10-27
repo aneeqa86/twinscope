@@ -22,6 +22,7 @@ import {
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import { cssVar, HEIGHT_CLASSES, USE_CLASSES, ageClass } from '@/config/legends'
 import { fetchWayFootprint } from '@/services/overpassService'
+import { idCondition } from './draw'
 
 const CESIUM_TOKEN = import.meta.env.VITE_CESIUM_ION_TOKEN
 
@@ -49,8 +50,16 @@ const styleConditions = (styleId) => {
   return [['true', 'color("#e4dfd3")']]
 }
 
-const applyStyle = (tileset, styleId, selectedId) => {
-  const conditions = styleConditions(styleId)
+/**
+ * override: { classes: [{ ids, color }], fallback? } colours buildings by analysis
+ * result; buildings outside every class keep the base style unless a fallback is given.
+ */
+const applyStyle = (tileset, styleId, selectedId, override) => {
+  let conditions = styleConditions(styleId)
+  if (override) {
+    const classes = override.classes.map((c) => [idCondition(c.ids), `color("${c.color}")`])
+    conditions = [...classes, ...(override.fallback ? [['true', `color("${override.fallback}")`]] : conditions)]
+  }
   if (selectedId !== null && selectedId !== undefined) {
     conditions.unshift([`\${feature["elementId"]} === ${Number(selectedId)}`, `color("${cssVar('--ts-accent')}")`])
   }
@@ -111,8 +120,12 @@ const CesiumViewer = forwardRef(({
   onBuildingCount,
   activeLayer,
   selectedBuilding,
+  styleOverride,
+  initialCity,
+  pickLocked = false,
   flyTo,
   sunHour,
+  sunDate,
   timezone = 4,
   measureMode,
   onMeasureResult,
@@ -133,11 +146,11 @@ const CesiumViewer = forwardRef(({
   const viewshedPointsRef      = useRef([])
   const selectionEntitiesRef   = useRef([])
   // Read inside the long-lived click handler, so they must be refs, not closure values
-  const modeRef                = useRef({ measureMode, viewshedMode })
-  const styleRef               = useRef({ activeLayer, selectedId: null })
+  const modeRef                = useRef({ measureMode, viewshedMode, pickLocked })
+  const styleRef               = useRef({ activeLayer, selectedId: null, override: null })
   const callbacksRef           = useRef({})
 
-  modeRef.current = { measureMode, viewshedMode }
+  modeRef.current = { measureMode, viewshedMode, pickLocked }
   callbacksRef.current = { onCameraMove, onBuildingClick, onLoad, onProgress, onError, onBuildingCount }
 
   const flyCamera = ({ lat, lng, alt, pitch = -40, heading = 0 }) => {
@@ -192,12 +205,12 @@ const CesiumViewer = forwardRef(({
     flyCamera(flyTo)
   }, [flyTo])
 
-  // Building style + selection colour
+  // Building style + selection colour + analysis colouring
   useEffect(() => {
-    styleRef.current = { activeLayer, selectedId: selectedBuilding?.elementId ?? null }
+    styleRef.current = { activeLayer, selectedId: selectedBuilding?.elementId ?? null, override: styleOverride ?? null }
     if (!tilesetRef.current) return
-    applyStyle(tilesetRef.current, activeLayer, styleRef.current.selectedId)
-  }, [activeLayer, selectedBuilding?.elementId])
+    applyStyle(tilesetRef.current, activeLayer, styleRef.current.selectedId, styleRef.current.override)
+  }, [activeLayer, selectedBuilding?.elementId, styleOverride])
 
   // Selection decoration: dashed accent bounding box + vertical height dimension line
   useEffect(() => {
@@ -273,11 +286,13 @@ const CesiumViewer = forwardRef(({
     viewer.scene.shadows = true
     viewer.scene.globe.shadows = Cesium.ShadowMode.ENABLED
     const now = new Date()
-    const utcMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+    const utcMidnight = sunDate
+      ? Date.UTC(sunDate.year, sunDate.month - 1, sunDate.day)
+      : Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
     const when = new Date(utcMidnight + (sunHour - timezone) * 3600 * 1000)
     viewer.clock.currentTime = JulianDate.fromDate(when)
     if (!(viewer.scene.light instanceof SunLight)) viewer.scene.light = new SunLight()
-  }, [sunHour, timezone])
+  }, [sunHour, timezone, sunDate?.year, sunDate?.month, sunDate?.day])
 
   // Measurement tool
   useEffect(() => {
@@ -578,7 +593,7 @@ const CesiumViewer = forwardRef(({
         if (!mountedRef.current || viewer.isDestroyed()) return
         viewer.scene.primitives.add(tileset)
         tilesetRef.current = tileset
-        applyStyle(tileset, styleRef.current.activeLayer, styleRef.current.selectedId)
+        applyStyle(tileset, styleRef.current.activeLayer, styleRef.current.selectedId, styleRef.current.override)
         progress(0.5, 1)
 
         tileset.tileLoad.addEventListener(() => {
@@ -609,8 +624,9 @@ const CesiumViewer = forwardRef(({
         setTimeout(finish, 15000)
 
         viewer.camera.percentageChanged = 0.02
+        const start = initialCity ?? { lng: 46.6753, lat: 24.7136, alt: 1500 }
         viewer.camera.setView({
-          destination: Cartesian3.fromDegrees(55.1404, 25.0820, 1500),
+          destination: Cartesian3.fromDegrees(start.lng, start.lat, start.alt),
           orientation: {
             heading: CesiumMath.toRadians(0),
             pitch: CesiumMath.toRadians(-40),
@@ -631,8 +647,8 @@ const CesiumViewer = forwardRef(({
         reportCamera()
 
         viewer.screenSpaceEventHandler.setInputAction((click) => {
-          const { measureMode: m, viewshedMode: v } = modeRef.current
-          if (m || v) return
+          const { measureMode: m, viewshedMode: v, pickLocked: locked } = modeRef.current
+          if (m || v || locked) return
           const picked = viewer.scene.pick(click.position)
           if (!defined(picked) || !picked.getProperty) {
             callbacksRef.current.onBuildingClick?.(null)

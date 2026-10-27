@@ -34,7 +34,7 @@ export const ScaleBar = ({ altitudeKm, className }) => {
 
 /** Slot G: scale bar + scene stats caption. */
 const StatusBar = ({ altitudeKm, tileCount }) => (
-  <div className="pointer-events-none absolute bottom-6 left-5 z-10 flex flex-col gap-2 [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]">
+  <div className="pointer-events-none absolute bottom-6 left-24 z-10 flex flex-col gap-2 [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]">
     <ScaleBar altitudeKm={altitudeKm} />
     <p className="font-mono text-[10.5px] text-ink-2">
       {tileCount !== null && tileCount !== undefined ? tileCount.toLocaleString() : '—'} tiles · OSM · Cesium World · WebGL 2

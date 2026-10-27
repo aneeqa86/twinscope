@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { Fragment, useEffect, useRef } from 'react'
 import clsx from 'clsx'
 import Icon from '@/components/icons/Icon'
 import { Segmented } from '@/components/primitives'
@@ -92,7 +92,7 @@ const BottomSheet = ({ detent, onDetentChange, tab, onTabChange, activeTool, onT
   }
 
   const isHalf = detent === 'half'
-  const toolButton = 'ts-transition flex h-[60px] w-14 flex-col items-center justify-center gap-1 rounded-[12px] text-[11px] font-medium'
+  const toolButton = 'ts-transition flex h-[60px] w-14 shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-[12px] text-[11px] font-medium'
 
   return (
     <div
@@ -124,7 +124,12 @@ const BottomSheet = ({ detent, onDetentChange, tab, onTabChange, activeTool, onT
         <span aria-hidden className="h-1 w-10 rounded-full bg-[rgba(244,240,230,0.28)]" />
       </button>
 
-      <nav aria-label="Map tools" className="flex shrink-0 justify-between px-3">
+      {/* Ten tools: the row scrolls sideways, snapping to buttons */}
+      <nav
+        aria-label="Map tools"
+        className="ts-scroll flex shrink-0 snap-x snap-mandatory gap-1 overflow-x-auto px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        style={{ touchAction: 'pan-x' }}
+      >
         <button
           type="button"
           onClick={() => { onTabChange('layers'); onDetentChange(isHalf && tab === 'layers' ? 'peek' : 'half') }}
@@ -134,18 +139,20 @@ const BottomSheet = ({ detent, onDetentChange, tab, onTabChange, activeTool, onT
           <Icon name="layers" size={22} />
           Layers
         </button>
-        {TOOLS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            aria-pressed={activeTool === t.id}
-            title={t.title}
-            onClick={() => { onToolChange(activeTool === t.id ? null : t.id); onDetentChange('peek') }}
-            className={clsx(toolButton, activeTool === t.id ? 'bg-accent text-accent-on' : 'text-ink-2 active:bg-hover')}
-          >
-            <Icon name={t.icon} size={22} />
-            {t.label}
-          </button>
+        {TOOLS.map((t, i) => (
+          <Fragment key={t.id}>
+            {(i === 0 || t.group !== TOOLS[i - 1].group) && <span aria-hidden className="my-3 w-px shrink-0 bg-line" />}
+            <button
+              type="button"
+              aria-pressed={activeTool === t.id}
+              title={t.title}
+              onClick={() => { onToolChange(activeTool === t.id ? null : t.id); onDetentChange('peek') }}
+              className={clsx(toolButton, activeTool === t.id ? 'bg-accent text-accent-on' : 'text-ink-2 active:bg-hover')}
+            >
+              <Icon name={t.icon} size={22} />
+              {t.label}
+            </button>
+          </Fragment>
         ))}
       </nav>
 

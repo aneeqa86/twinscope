@@ -57,6 +57,11 @@
   --ts-height-1: #4b5c80; --ts-height-2: #6f86b5; --ts-height-3: #9fb8e8; --ts-height-4: #e3eeff; /* <20, 20-50, 50-100, >100 m */
   --ts-age-1: #7b5fd6; --ts-age-2: #5b7be0; --ts-age-3: #3c9bd6; --ts-age-4: #2fb8b0; --ts-age-5: #7ccb6a; --ts-age-6: #d6d35a; --ts-age-7: #f5e9b8; /* pre-1970 ... 2020s */
   --ts-road-motorway: #f4f0e6; --ts-road-trunk: #d8d2c0; --ts-road-primary: #a9a598; --ts-road-secondary: #7e7b72; --ts-road-residential: #57554f;
+  /* analysis ramps */
+  --ts-solar-1: #4f4232; --ts-solar-2: #7d6236; --ts-solar-3: #b8873a; --ts-solar-4: #e9b544; --ts-solar-5: #ffe38a; /* MWh/yr, low ... high */
+  --ts-iso-1: #a6f0dc; --ts-iso-2: #4fc0c9; --ts-iso-3: #3d7fc0; --ts-iso-gap: #ff6b7a; /* walk minutes 0-5, 5-10, 10-15, >15 */
+  --ts-shade-sun: #f5b14c; --ts-shade-part: #a59d88; --ts-shade-full: #6aa7ff; /* street shade: exposed ... shaded */
+  --ts-impact-1: #f2cd4c; --ts-impact-2: #f08a5d; --ts-impact-3: #d65bb0; /* hours overshadowed: 1-2, 3-4, 5+ */
   --ts-aqi-1: #46d39a; --ts-aqi-2: #a8d65a; --ts-aqi-3: #f2cd4c; --ts-aqi-4: #f08a5d; --ts-aqi-5: #c46ad0; /* Good ... Very poor */
 }
 @media (prefers-reduced-motion: reduce) {
