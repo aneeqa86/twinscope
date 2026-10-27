@@ -53,3 +53,31 @@ export function getErrorMessage(error) {
     'An unexpected error occurred.'
   )
 }
+
+/** 25.1972 → "25.1972° N" */
+export function formatLat(lat) {
+  if (lat === null || lat === undefined || isNaN(lat)) return '—'
+  return `${Math.abs(lat).toFixed(4)}° ${lat >= 0 ? 'N' : 'S'}`
+}
+
+/** 55.2744 → "55.2744° E" */
+export function formatLng(lng) {
+  if (lng === null || lng === undefined || isNaN(lng)) return '—'
+  return `${Math.abs(lng).toFixed(4)}° ${lng >= 0 ? 'E' : 'W'}`
+}
+
+/** Altitude in km → "1.82 km" (or metres below 1 km) */
+export function formatAlt(km) {
+  if (km === null || km === undefined || isNaN(km)) return '—'
+  if (km < 1) return `${Math.round(km * 1000)} m`
+  return `${km < 100 ? km.toFixed(2) : Math.round(km).toLocaleString()} km`
+}
+
+/** Decimal hour → "06:20" (24h) */
+export function formatHour24(h) {
+  if (h === null || h === undefined || isNaN(h)) return '—'
+  let hours = Math.floor(h)
+  let mins = Math.round((h - hours) * 60)
+  if (mins === 60) { hours += 1; mins = 0 }
+  return `${String(hours % 24).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
+}

@@ -65,3 +65,23 @@ export const fetchBuildingAges = async (bbox) => {
   const data = await post(query)
   return data?.elements ?? []
 }
+export const fetchBuildingHeights = async (bbox) => {
+  const { south, west, north, east } = bbox
+  const query = `
+    [out:json][timeout:25];
+    (
+      way["building"]["height"](${south},${west},${north},${east});
+      way["building"]["building:levels"](${south},${west},${north},${east});
+    );
+    out tags;
+  `
+  const data = await post(query)
+  return data?.elements ?? []
+}
+
+/** Footprint ring of one OSM way, used to draw the selection box. */
+export const fetchWayFootprint = async (wayId) => {
+  const query = `[out:json][timeout:15]; way(${wayId}); out geom;`
+  const data = await post(query)
+  return data?.elements?.[0]?.geometry ?? null
+}

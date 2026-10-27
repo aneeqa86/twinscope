@@ -1,103 +1,148 @@
+@import './styles/tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --color-bg: theme('colors.white');
-    --color-surface: theme('colors.gray.50');
-    --color-text: theme('colors.gray.900');
-    --color-muted: theme('colors.gray.500');
-    --color-border: theme('colors.gray.200');
-  }
-
-  .dark {
-    --color-bg: theme('colors.gray.950');
-    --color-surface: theme('colors.gray.900');
-    --color-text: theme('colors.gray.50');
-    --color-muted: theme('colors.gray.400');
-    --color-border: theme('colors.gray.800');
-  }
-
   * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
   }
 
+  html,
   body {
-    @apply bg-white text-gray-900 antialiased;
-    background-color: var(--color-bg);
-    color: var(--color-text);
+    background: var(--ts-void);
+    color: var(--ts-text);
+    font-family: var(--ts-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ts-accent);
+    outline-offset: 2px;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: default;
+    opacity: 0.38;
   }
 }
 
 @layer components {
-  .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:pointer-events-none disabled:opacity-50;
+  /* Glass panel floating over the map */
+  .ts-panel {
+    background: var(--ts-glass);
+    backdrop-filter: var(--ts-blur);
+    -webkit-backdrop-filter: var(--ts-blur);
+    border: 1px solid var(--ts-line);
+    box-shadow: var(--ts-shadow-1);
+    border-radius: var(--ts-r-panel);
   }
 
-  .btn-primary {
-    @apply btn bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800;
+  /* Popovers and dropdowns sit one level higher */
+  .ts-pop {
+    background: var(--ts-glass-pop);
+    backdrop-filter: var(--ts-blur);
+    -webkit-backdrop-filter: var(--ts-blur);
+    border: 1px solid var(--ts-line);
+    box-shadow: var(--ts-shadow-2);
+    border-radius: var(--ts-r-panel);
   }
 
-  .btn-secondary {
-    @apply btn bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700;
+  .ts-label {
+    font-family: var(--ts-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ts-text-3);
   }
 
-  .btn-ghost {
-    @apply btn text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800;
+  .ts-transition {
+    transition-property: background-color, color, border-color, opacity, transform;
+    transition-duration: var(--ts-dur-fast);
+    transition-timing-function: var(--ts-ease-settle);
   }
 
-  .card {
-    @apply rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900;
-  }
-
-  .input {
-    @apply w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500;
+  .ts-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ts-line-strong) transparent;
   }
 }
-/* Cesium geocoder — TwinScope dark theme override */
-.cesium-geocoder-searchButton {
-  background: #0a1628 !important;
-  border: 1px solid rgba(8, 145, 178, 0.3) !important;
+
+/* ── Panel enter / exit (Presence component sets data-state) ──────────── */
+@keyframes ts-in-left   { from { opacity: 0; transform: translateX(-14px); } }
+@keyframes ts-out-left  { to   { opacity: 0; transform: translateX(-14px); } }
+@keyframes ts-in-right  { from { opacity: 0; transform: translateX(14px); } }
+@keyframes ts-out-right { to   { opacity: 0; transform: translateX(14px); } }
+@keyframes ts-in-up     { from { opacity: 0; transform: translateY(8px); } }
+@keyframes ts-out-down  { to   { opacity: 0; transform: translateY(8px); } }
+@keyframes ts-in-down   { from { opacity: 0; transform: translateY(-6px); } }
+@keyframes ts-out-up    { to   { opacity: 0; transform: translateY(-6px); } }
+@keyframes ts-fade-in   { from { opacity: 0; } }
+@keyframes ts-fade-out  { to   { opacity: 0; } }
+
+.ts-motion-left[data-state='open']    { animation: ts-in-left   var(--ts-dur-panel-in)  var(--ts-ease-settle) both; }
+.ts-motion-left[data-state='closed']  { animation: ts-out-left  var(--ts-dur-panel-out) var(--ts-ease-settle) both; }
+.ts-motion-right[data-state='open']   { animation: ts-in-right  var(--ts-dur-panel-in)  var(--ts-ease-settle) both; }
+.ts-motion-right[data-state='closed'] { animation: ts-out-right var(--ts-dur-panel-out) var(--ts-ease-settle) both; }
+.ts-motion-up[data-state='open']      { animation: ts-in-up     var(--ts-dur-panel-in)  var(--ts-ease-settle) both; }
+.ts-motion-up[data-state='closed']    { animation: ts-out-down  var(--ts-dur-panel-out) var(--ts-ease-settle) both; }
+.ts-motion-down[data-state='open']    { animation: ts-in-down   var(--ts-dur-fast)      var(--ts-ease-settle) both; }
+.ts-motion-down[data-state='closed']  { animation: ts-out-up    var(--ts-dur-fast)      var(--ts-ease-settle) both; }
+.ts-motion-fade[data-state='open']    { animation: ts-fade-in   180ms var(--ts-ease-settle) both; }
+.ts-motion-fade[data-state='closed']  { animation: ts-fade-out  180ms var(--ts-ease-settle) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-state] { animation: none !important; }
+  * { scroll-behavior: auto !important; }
 }
 
-.cesium-geocoder-searchButton:hover {
-  background: rgba(6, 182, 212, 0.2) !important;
+/* ── Range input (sun slider) ─────────────────────────────────────────── */
+.ts-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 32px;
+  background: transparent;
+  cursor: pointer;
 }
+.ts-range:focus-visible { outline: none; }
+.ts-range::-webkit-slider-runnable-track { height: 32px; background: transparent; }
+.ts-range::-moz-range-track { height: 32px; background: transparent; }
+.ts-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: 5px;
+  border-radius: 999px;
+  background: var(--ts-accent);
+  border: 3px solid var(--ts-on-accent);
+  box-shadow: 0 0 0 1px var(--ts-accent), 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+.ts-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--ts-accent);
+  border: 3px solid var(--ts-on-accent);
+  box-shadow: 0 0 0 1px var(--ts-accent), 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+.ts-range:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--ts-accent); outline-offset: 3px; }
+.ts-range:focus-visible::-moz-range-thumb { outline: 2px solid var(--ts-accent); outline-offset: 3px; }
 
-.cesium-geocoder-input {
-  background: #0a1628 !important;
-  color: #e2e8f0 !important;
-  border: 1px solid rgba(8, 145, 178, 0.3) !important;
-  font-family: ui-monospace, monospace !important;
-  font-size: 12px !important;
+/* ── Cesium chrome ────────────────────────────────────────────────────── */
+.cesium-viewer-bottom {
+  /* Keep the required data attribution, but out of the way of the status slot */
+  left: auto !important;
+  right: 8px !important;
+  bottom: 4px !important;
+  opacity: 0.55;
 }
-
-.cesium-geocoder-input::placeholder {
-  color: #475569 !important;
-}
-
-.cesium-geocoder-input-container {
-  background: #0a1628 !important;
-  border: 1px solid rgba(8, 145, 178, 0.3) !important;
-  border-radius: 8px !important;
-  overflow: hidden !important;
-}
-
-.cesium-geocoder-searchSuggestionsContainer {
-  background: #0a1628 !important;
-  border: 1px solid rgba(8, 145, 178, 0.3) !important;
-  border-radius: 8px !important;
-}
-
-.cesium-geocoder-searchSuggestion {
-  color: #94a3b8 !important;
-  font-size: 12px !important;
-}
-
-.cesium-geocoder-searchSuggestion:hover {
-  background: rgba(6, 182, 212, 0.1) !important;
-  color: #06b6d4 !important;
-}
+.cesium-widget-credits { font-family: var(--ts-mono); font-size: 10px; }

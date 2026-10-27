@@ -1,0 +1,64 @@
+/* TwinScope design tokens. Imported once at the app root (src/index.css). */
+:root {
+  /* surfaces */
+  --ts-void: #0c0d0f;          /* map base, page ground */
+  --ts-panel: #141518;         /* solid panel colour */
+  --ts-raised: #1c1d21;        /* inputs, tiles */
+  --ts-selected: #2b2c31;      /* active segment */
+  --ts-glass: rgba(18, 19, 22, 0.86);       /* panels over the map */
+  --ts-glass-pop: rgba(20, 21, 24, 0.95);   /* popovers, dropdowns */
+  --ts-glass-sheet: rgba(18, 19, 22, 0.9);  /* mobile sheet */
+  --ts-line: rgba(244, 240, 230, 0.11);
+  --ts-line-strong: rgba(244, 240, 230, 0.2);
+  --ts-fill-hover: rgba(244, 240, 230, 0.08);
+  --ts-fill-subtle: rgba(244, 240, 230, 0.05);
+
+  /* text (contrast on --ts-panel) */
+  --ts-text: #f4f0e6;          /* 16.0:1 */
+  --ts-text-2: #b9b5ab;        /* 8.9:1  */
+  --ts-text-3: #8e8a80;        /* 5.3:1  */
+
+  /* brand + semantic */
+  --ts-accent: #ff7a4d;        /* ember, 7.1:1 */
+  --ts-on-accent: #1a0c06;     /* 7.4:1 on accent */
+  --ts-accent-wash: rgba(255, 122, 77, 0.15);
+  --ts-ok: #4fd39a;
+  --ts-bad: #ff6b7a;
+
+  /* type */
+  --ts-sans: "Geist", system-ui, -apple-system, sans-serif;
+  --ts-mono: "Geist Mono", ui-monospace, Menlo, monospace;
+  --ts-serif: "Instrument Serif", Georgia, serif;
+
+  /* radii */
+  --ts-r-control: 8px;
+  --ts-r-pill: 12px;
+  --ts-r-panel: 16px;
+  --ts-r-sheet: 22px;
+
+  /* elevation */
+  --ts-shadow-1: 0 14px 36px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --ts-shadow-2: 0 20px 48px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --ts-shadow-sheet: 0 -10px 32px rgba(0, 0, 0, 0.4);
+  --ts-blur: blur(18px) saturate(1.15);
+
+  /* motion */
+  --ts-ease-settle: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ts-ease-glide: cubic-bezier(0.65, 0, 0.35, 1);
+  --ts-dur-fast: 160ms;
+  --ts-dur-panel-in: 240ms;
+  --ts-dur-panel-out: 160ms;
+  --ts-dur-sheet: 340ms;
+
+  /* map legends: categorical / sequential */
+  --ts-poi-hospital: #f0708f; --ts-poi-school: #ffd84d; --ts-poi-mosque: #3fd0bc; --ts-poi-metro: #5aa9ff;
+  --ts-poi-mall: #b58cff; --ts-poi-park: #7bcb5a; --ts-poi-hotel: #e9e2cf; --ts-poi-restaurant: #8fddf2;
+  --ts-use-commercial: #5aa9ff; --ts-use-residential: #e6c07b; --ts-use-industrial: #a58af5; --ts-use-unknown: #7a7972;
+  --ts-height-1: #4b5c80; --ts-height-2: #6f86b5; --ts-height-3: #9fb8e8; --ts-height-4: #e3eeff; /* <20, 20-50, 50-100, >100 m */
+  --ts-age-1: #7b5fd6; --ts-age-2: #5b7be0; --ts-age-3: #3c9bd6; --ts-age-4: #2fb8b0; --ts-age-5: #7ccb6a; --ts-age-6: #d6d35a; --ts-age-7: #f5e9b8; /* pre-1970 ... 2020s */
+  --ts-road-motorway: #f4f0e6; --ts-road-trunk: #d8d2c0; --ts-road-primary: #a9a598; --ts-road-secondary: #7e7b72; --ts-road-residential: #57554f;
+  --ts-aqi-1: #46d39a; --ts-aqi-2: #a8d65a; --ts-aqi-3: #f2cd4c; --ts-aqi-4: #f08a5d; --ts-aqi-5: #c46ad0; /* Good ... Very poor */
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --ts-dur-fast: 0ms; --ts-dur-panel-in: 0ms; --ts-dur-panel-out: 0ms; --ts-dur-sheet: 0ms; }
+}

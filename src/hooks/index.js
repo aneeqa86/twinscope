@@ -1,2 +1,6 @@
 export { useApi } from './useApi'
 export { useDebounce } from './useDebounce'
+export { useBreakpoint, useViewportWidth, usePrefersReducedMotion } from './useBreakpoint'
+export { useCityWeather } from './useCityWeather'
+export { useSunTimes } from './useSunTimes'
+export { useHeightHistogram } from './useHeightHistogram'

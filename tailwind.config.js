@@ -1,10 +1,14 @@
+import tsPreset from './src/styles/tailwind.preset.js'
+
 /** @type {import('tailwindcss').Config} */
 export default {
+  presets: [tsPreset],
   content: ['./index.html', './src/**/*.{js,jsx}'],
   darkMode: 'class',
   theme: {
     extend: {
       colors: {
+        // Legacy scale used by the boilerplate components in components/ui
         primary: {
           50:  '#f0f9ff',
           100: '#e0f2fe',
@@ -17,9 +21,6 @@ export default {
           800: '#075985',
           900: '#0c4a6e',
         },
-      },
-      fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
       },
     },
   },
